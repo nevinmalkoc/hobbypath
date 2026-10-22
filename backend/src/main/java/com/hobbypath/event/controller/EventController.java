@@ -19,6 +19,7 @@ import java.util.List;
 public class EventController {
 
     private final EventService eventService;
+    private final com.hobbypath.event.service.EventReservationService reservationService;
 
     @GetMapping
     public ResponseEntity<List<EventResponse>> getUpcomingEvents(
@@ -60,5 +61,38 @@ public class EventController {
             @PathVariable Long id
     ) {
         return ResponseEntity.ok(eventService.leaveEvent(currentUser, id));
+    }
+
+    @PostMapping("/{id}/reserve")
+    public ResponseEntity<com.hobbypath.event.dto.EventReservationResponse> reserveSlot(
+            @AuthenticationPrincipal User currentUser,
+            @PathVariable Long id
+    ) {
+        return ResponseEntity.ok(reservationService.holdSlot(currentUser, id));
+    }
+
+    @PostMapping("/{id}/confirm")
+    public ResponseEntity<EventResponse> confirmReservation(
+            @AuthenticationPrincipal User currentUser,
+            @PathVariable Long id
+    ) {
+        return ResponseEntity.ok(reservationService.confirmHold(currentUser, id));
+    }
+
+    @DeleteMapping("/{id}/reserve")
+    public ResponseEntity<Void> cancelReservation(
+            @AuthenticationPrincipal User currentUser,
+            @PathVariable Long id
+    ) {
+        reservationService.releaseHold(currentUser, id);
+        return ResponseEntity.noContent().build();
+    }
+
+    @GetMapping("/{id}/reservation-status")
+    public ResponseEntity<com.hobbypath.event.dto.ReservationStatusResponse> getReservationStatus(
+            @AuthenticationPrincipal User currentUser,
+            @PathVariable Long id
+    ) {
+        return ResponseEntity.ok(reservationService.getReservationStatus(id, currentUser));
     }
 }
