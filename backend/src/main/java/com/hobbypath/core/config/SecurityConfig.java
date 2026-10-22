@@ -33,6 +33,7 @@ public class SecurityConfig {
                                 "/api/v1/health/**",
                                 "/api/v1/hobbies/**"
                         ).permitAll()
+                        .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/v1/communities/**").permitAll()
                         .anyRequest().authenticated()
                 )
                 .sessionManagement(sess -> sess.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
