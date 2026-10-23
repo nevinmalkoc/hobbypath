@@ -40,7 +40,8 @@ public class SecurityConfig {
                                 "/swagger-ui.html",
                                 "/v3/api-docs/**",
                                 "/swagger-resources/**",
-                                "/webjars/**"
+                                "/webjars/**",
+                                "/ws/**"
                         ).permitAll()
                         .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/v1/communities/**").permitAll()
                         .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/v1/events/**").permitAll()
