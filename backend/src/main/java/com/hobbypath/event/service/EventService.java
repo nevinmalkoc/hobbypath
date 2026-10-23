@@ -28,6 +28,7 @@ public class EventService {
     private final EventRepository eventRepository;
     private final EventParticipantRepository participantRepository;
     private final CommunityRepository communityRepository;
+    private final com.hobbypath.notification.service.NotificationService notificationService;
 
     @Transactional
     public EventResponse createEvent(User organizer, Long communityId, CreateEventRequest request) {
@@ -148,6 +149,14 @@ public class EventService {
                 promoted.setStatus(ParticipantStatus.REGISTERED);
                 participantRepository.save(promoted);
                 log.info("Promoted user {} from WAITLIST to REGISTERED for event {}", promoted.getUser().getUsername(), event.getId());
+
+                notificationService.createNotification(
+                        promoted.getUser(),
+                        "Kontenjan Açıldı! 🎉",
+                        "\"" + event.getTitle() + "\" etkinliğinde boşalan kontenjan için yedek listeden asil listeye alındınız!",
+                        com.hobbypath.notification.entity.NotificationType.EVENT_PROMOTED,
+                        event.getId()
+                );
             } else {
                 event.setCurrentParticipants(Math.max(0, event.getCurrentParticipants() - 1));
                 eventRepository.save(event);

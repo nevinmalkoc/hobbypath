@@ -286,3 +286,35 @@ class EventReservationModel {
   }
 }
 
+class NotificationModel {
+  final int id;
+  final String title;
+  final String message;
+  final String type;
+  final int? referenceId;
+  final bool read;
+  final String createdAt;
+
+  NotificationModel({
+    required this.id,
+    required this.title,
+    required this.message,
+    required this.type,
+    this.referenceId,
+    required this.read,
+    required this.createdAt,
+  });
+
+  factory NotificationModel.fromJson(Map<String, dynamic> json) {
+    return NotificationModel(
+      id: json['id'] as int,
+      title: json['title'] as String? ?? '',
+      message: json['message'] as String? ?? '',
+      type: json['type'] as String? ?? 'SYSTEM',
+      referenceId: json['referenceId'] as int?,
+      read: json['read'] as bool? ?? false,
+      createdAt: json['createdAt'] as String? ?? '',
+    );
+  }
+}
+

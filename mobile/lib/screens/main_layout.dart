@@ -76,11 +76,24 @@ class _FeedTabState extends State<FeedTab> {
   List<PostModel> _posts = [];
   List<EventModel> _events = [];
   bool _isLoading = true;
+  int _unreadCount = 0;
 
   @override
   void initState() {
     super.initState();
     _fetchFeed();
+    _fetchUnreadCount();
+  }
+
+  Future<void> _fetchUnreadCount() async {
+    try {
+      final response = await ApiClient().dio.get('/notifications/unread-count');
+      if (mounted) {
+        setState(() {
+          _unreadCount = (response.data['unreadCount'] as num?)?.toInt() ?? 0;
+        });
+      }
+    } catch (_) {}
   }
 
   Future<void> _fetchFeed() async {
@@ -98,9 +111,160 @@ class _FeedTabState extends State<FeedTab> {
         _events = eventsData;
         _isLoading = false;
       });
+      _fetchUnreadCount();
     } catch (e) {
       if (mounted) setState(() => _isLoading = false);
     }
+  }
+
+  void _showNotificationsSheet() async {
+    List<NotificationModel> notifications = [];
+    bool loadingNotifs = true;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (sheetContext) {
+        return StatefulBuilder(
+          builder: (ctx, setSheetState) {
+            if (loadingNotifs) {
+              ApiClient().dio.get('/notifications').then((res) {
+                final list = (res.data as List)
+                    .map((e) => NotificationModel.fromJson(e as Map<String, dynamic>))
+                    .toList();
+                if (ctx.mounted) {
+                  setSheetState(() {
+                    notifications = list;
+                    loadingNotifs = false;
+                  });
+                }
+              }).catchError((_) {
+                if (ctx.mounted) {
+                  setSheetState(() => loadingNotifs = false);
+                }
+              });
+            }
+
+            return Container(
+              height: MediaQuery.of(ctx).size.height * 0.7,
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text(
+                        'Bildirimler 🔔',
+                        style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                      ),
+                      if (notifications.isNotEmpty)
+                        TextButton(
+                          onPressed: () async {
+                            try {
+                              await ApiClient().dio.patch('/notifications/read-all');
+                              setState(() => _unreadCount = 0);
+                              if (ctx.mounted) {
+                                setSheetState(() {
+                                  notifications = notifications
+                                      .map((n) => NotificationModel(
+                                            id: n.id,
+                                            title: n.title,
+                                            message: n.message,
+                                            type: n.type,
+                                            referenceId: n.referenceId,
+                                            read: true,
+                                            createdAt: n.createdAt,
+                                          ))
+                                      .toList();
+                                });
+                              }
+                            } catch (_) {}
+                          },
+                          child: const Text('Tümünü Okundu Say'),
+                        ),
+                    ],
+                  ),
+                  const Divider(),
+                  Expanded(
+                    child: loadingNotifs
+                        ? const Center(child: CircularProgressIndicator())
+                        : notifications.isEmpty
+                            ? Center(
+                                child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Icon(Icons.notifications_none_outlined,
+                                        size: 48, color: Colors.grey.shade400),
+                                    const SizedBox(height: 12),
+                                    Text(
+                                      'Henüz yeni bir bildiriminiz yok.',
+                                      style: TextStyle(color: Colors.grey.shade600),
+                                    ),
+                                  ],
+                                ),
+                              )
+                            : ListView.separated(
+                                itemCount: notifications.length,
+                                separatorBuilder: (_, index) => const SizedBox(height: 8),
+                                itemBuilder: (c, i) {
+                                  final notif = notifications[i];
+                                  return Container(
+                                    decoration: BoxDecoration(
+                                      color: notif.read
+                                          ? Colors.grey.shade50
+                                          : Colors.orange.shade50,
+                                      borderRadius: BorderRadius.circular(12),
+                                      border: Border.all(
+                                        color: notif.read
+                                            ? Colors.grey.shade200
+                                            : Colors.orange.shade200,
+                                      ),
+                                    ),
+                                    child: ListTile(
+                                      leading: CircleAvatar(
+                                        backgroundColor: notif.read
+                                            ? Colors.grey.shade200
+                                            : Colors.orange.shade100,
+                                        child: Text(
+                                          notif.type == 'EVENT_PROMOTED'
+                                              ? '🎉'
+                                              : notif.type == 'COMMUNITY_POST'
+                                                  ? '💬'
+                                                  : '📢',
+                                          style: const TextStyle(fontSize: 18),
+                                        ),
+                                      ),
+                                      title: Text(
+                                        notif.title,
+                                        style: TextStyle(
+                                          fontWeight: notif.read
+                                              ? FontWeight.normal
+                                              : FontWeight.bold,
+                                        ),
+                                      ),
+                                      subtitle: Text(
+                                        notif.message,
+                                        style: TextStyle(
+                                          fontSize: 13,
+                                          color: Colors.grey.shade700,
+                                        ),
+                                      ),
+                                    ),
+                                  );
+                                },
+                              ),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
   }
 
   @override
@@ -114,6 +278,18 @@ class _FeedTabState extends State<FeedTab> {
             Text('HobbyPath', style: TextStyle(fontWeight: FontWeight.bold)),
           ],
         ),
+        actions: [
+          IconButton(
+            tooltip: 'Bildirimler',
+            onPressed: _showNotificationsSheet,
+            icon: Badge(
+              isLabelVisible: _unreadCount > 0,
+              label: Text('$_unreadCount'),
+              child: const Icon(Icons.notifications_outlined),
+            ),
+          ),
+          const SizedBox(width: 8),
+        ],
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
