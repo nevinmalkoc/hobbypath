@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../core/api_client.dart';
 import '../models/models.dart';
+import 'community_chat_screen.dart';
 
 class CommunityDetailScreen extends StatefulWidget {
   final CommunityModel community;
@@ -134,6 +135,21 @@ class _CommunityDetailScreenState extends State<CommunityDetailScreen> {
     return Scaffold(
       appBar: AppBar(
         title: Text(_community.name),
+        actions: [
+          if (_community.isMember)
+            IconButton(
+              icon: const Icon(Icons.forum_outlined),
+              tooltip: 'Topluluk Sohbeti',
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => CommunityChatScreen(community: _community),
+                  ),
+                );
+              },
+            ),
+        ],
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: _showCreatePostDialog,
@@ -187,13 +203,32 @@ class _CommunityDetailScreenState extends State<CommunityDetailScreen> {
                           ),
                         ],
                         const SizedBox(height: 14),
-                        OutlinedButton.icon(
-                          onPressed: _toggleJoin,
-                          icon: Icon(
-                            _community.isMember ? Icons.check : Icons.group_add_outlined,
-                            size: 18,
-                          ),
-                          label: Text(_community.isMember ? 'Üyesin (Ayrıl)' : 'Topluluğa Katıl'),
+                        Wrap(
+                          spacing: 10,
+                          runSpacing: 8,
+                          children: [
+                            OutlinedButton.icon(
+                              onPressed: _toggleJoin,
+                              icon: Icon(
+                                _community.isMember ? Icons.check : Icons.group_add_outlined,
+                                size: 18,
+                              ),
+                              label: Text(_community.isMember ? 'Üyesin (Ayrıl)' : 'Topluluğa Katıl'),
+                            ),
+                            if (_community.isMember)
+                              FilledButton.icon(
+                                onPressed: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (_) => CommunityChatScreen(community: _community),
+                                    ),
+                                  );
+                                },
+                                icon: const Icon(Icons.chat_bubble_outline, size: 18),
+                                label: const Text('Canlı Sohbet Odası'),
+                              ),
+                          ],
                         ),
                       ],
                     ),

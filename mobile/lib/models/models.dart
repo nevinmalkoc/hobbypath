@@ -221,3 +221,68 @@ class EventModel {
     );
   }
 }
+
+class ChatMessageModel {
+  final int id;
+  final int senderId;
+  final String senderUsername;
+  final String senderFullName;
+  final int? communityId;
+  final String content;
+  final String type;
+  final String sentAt;
+
+  ChatMessageModel({
+    required this.id,
+    required this.senderId,
+    required this.senderUsername,
+    required this.senderFullName,
+    this.communityId,
+    required this.content,
+    required this.type,
+    required this.sentAt,
+  });
+
+  factory ChatMessageModel.fromJson(Map<String, dynamic> json) {
+    return ChatMessageModel(
+      id: json['id'] as int,
+      senderId: json['senderId'] as int,
+      senderUsername: json['senderUsername'] as String? ?? 'Anonim',
+      senderFullName: json['senderFullName'] as String? ?? '',
+      communityId: json['communityId'] as int?,
+      content: json['content'] as String? ?? '',
+      type: json['type'] as String? ?? 'CHAT',
+      sentAt: json['sentAt'] as String? ?? '',
+    );
+  }
+}
+
+class EventReservationModel {
+  final int eventId;
+  final int userId;
+  final String status;
+  final int remainingSeconds;
+  final String? expiresAt;
+  final String message;
+
+  EventReservationModel({
+    required this.eventId,
+    required this.userId,
+    required this.status,
+    required this.remainingSeconds,
+    this.expiresAt,
+    required this.message,
+  });
+
+  factory EventReservationModel.fromJson(Map<String, dynamic> json) {
+    return EventReservationModel(
+      eventId: json['eventId'] as int,
+      userId: json['userId'] as int? ?? 0,
+      status: json['status'] as String? ?? '',
+      remainingSeconds: json['remainingSeconds'] as int? ?? 0,
+      expiresAt: json['expiresAt'] as String?,
+      message: json['message'] as String? ?? '',
+    );
+  }
+}
+

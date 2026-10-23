@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../core/api_client.dart';
@@ -470,6 +471,156 @@ class _EventsTabState extends State<EventsTab> {
     }
   }
 
+  Future<void> _startReservation(EventModel event) async {
+    try {
+      final response = await ApiClient().dio.post('/events/${event.id}/reserve');
+      final reservation = EventReservationModel.fromJson(response.data as Map<String, dynamic>);
+
+      if (!mounted) return;
+
+      if (reservation.status == 'FULL') {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(reservation.message),
+            action: SnackBarAction(
+              label: 'Yedek Liste',
+              onPressed: () => _toggleJoin(event),
+            ),
+          ),
+        );
+        return;
+      }
+
+      _showReservationDialog(event, reservation.remainingSeconds);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Rezervasyon başlatılamadı.')),
+        );
+      }
+    }
+  }
+
+  void _showReservationDialog(EventModel event, int initialSeconds) {
+    int remainingSeconds = initialSeconds > 0 ? initialSeconds : 300;
+    Timer? countdownTimer;
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (dialogContext, setDialogState) {
+            countdownTimer ??= Timer.periodic(const Duration(seconds: 1), (t) {
+              if (remainingSeconds <= 1) {
+                t.cancel();
+                Navigator.of(ctx, rootNavigator: true).pop();
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('5 dakikalık süreniz doldu. Kontenjan serbest bırakıldı.')),
+                );
+                _fetchEvents();
+              } else {
+                setDialogState(() {
+                  remainingSeconds--;
+                });
+              }
+            });
+
+            final minutes = (remainingSeconds ~/ 60).toString().padLeft(2, '0');
+            final seconds = (remainingSeconds % 60).toString().padLeft(2, '0');
+
+            return AlertDialog(
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+              title: Row(
+                children: [
+                  const Icon(Icons.timer_outlined, color: Colors.orange, size: 28),
+                  const SizedBox(width: 8),
+                  const Expanded(
+                    child: Text(
+                      'Kontenjan Ayrıldı!',
+                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                ],
+              ),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                    decoration: BoxDecoration(
+                      color: Colors.orange.shade50,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: Colors.orange.shade300),
+                    ),
+                    child: Column(
+                      children: [
+                        const Text(
+                          'Kalan Kayıt Süreniz',
+                          style: TextStyle(fontSize: 12, color: Colors.black54),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          '$minutes:$seconds',
+                          style: const TextStyle(
+                            fontSize: 32,
+                            fontWeight: FontWeight.bold,
+                            letterSpacing: 2,
+                            color: Colors.deepOrange,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+                  Text(
+                    '${event.title} için son kontenjan adınıza rezerve edilmiştir. Bu süre içinde başkası yerinizi alamaz.',
+                    style: const TextStyle(fontSize: 13, color: Colors.black87),
+                  ),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () async {
+                    countdownTimer?.cancel();
+                    Navigator.of(ctx, rootNavigator: true).pop();
+                    try {
+                      await ApiClient().dio.delete('/events/${event.id}/reserve');
+                    } catch (_) {}
+                    _fetchEvents();
+                  },
+                  child: const Text('Vazgeç', style: TextStyle(color: Colors.grey)),
+                ),
+                FilledButton(
+                  onPressed: () async {
+                    countdownTimer?.cancel();
+                    Navigator.of(ctx, rootNavigator: true).pop();
+                    try {
+                      await ApiClient().dio.post('/events/${event.id}/confirm');
+                      if (mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('🎉 Tebrikler, kaydınız başarıyla tamamlandı!')),
+                        );
+                      }
+                      _fetchEvents();
+                    } catch (e) {
+                      if (mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Kayıt onaylanamadı.')),
+                        );
+                      }
+                    }
+                  },
+                  child: const Text('Kaydı Tamamla'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -485,6 +636,7 @@ class _EventsTabState extends State<EventsTab> {
                   final event = _events[index];
                   final isRegistered = event.userStatus == 'REGISTERED';
                   final isWaitlist = event.userStatus == 'WAITLIST';
+                  final isFull = event.currentParticipants >= event.capacity;
 
                   return Card(
                     margin: const EdgeInsets.only(bottom: 12),
@@ -540,36 +692,59 @@ class _EventsTabState extends State<EventsTab> {
                               Container(
                                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                                 decoration: BoxDecoration(
-                                  color: Colors.blue.shade50,
+                                  color: isFull ? Colors.red.shade50 : Colors.blue.shade50,
                                   borderRadius: BorderRadius.circular(6),
                                 ),
                                 child: Text(
-                                  'Kontenjan: ${event.currentParticipants}/${event.capacity}',
+                                  isFull
+                                      ? 'DOLU (${event.currentParticipants}/${event.capacity})'
+                                      : 'Kontenjan: ${event.currentParticipants}/${event.capacity}',
                                   style: TextStyle(
                                     fontSize: 12,
                                     fontWeight: FontWeight.bold,
-                                    color: Colors.blue.shade800,
+                                    color: isFull ? Colors.red.shade800 : Colors.blue.shade800,
                                   ),
                                 ),
                               ),
                             ],
                           ),
                           const SizedBox(height: 12),
-                          ElevatedButton(
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: (isRegistered || isWaitlist)
-                                  ? Colors.red.shade700
-                                  : Theme.of(context).primaryColor,
+                          if (isRegistered || isWaitlist)
+                            ElevatedButton(
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.red.shade700,
+                              ),
+                              onPressed: () => _toggleJoin(event),
+                              child: Text(
+                                isRegistered
+                                    ? 'Katılıyorsun (İptal Et)'
+                                    : 'Yedek Listedesin (İptal Et)',
+                              ),
+                            )
+                          else if (isFull)
+                            ElevatedButton(
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.orange.shade800,
+                              ),
+                              onPressed: () => _toggleJoin(event),
+                              child: const Text('Kontenjan Dolu · Yedek Listeye Katıl'),
+                            )
+                          else
+                            Wrap(
+                              spacing: 8,
+                              runSpacing: 8,
+                              children: [
+                                ElevatedButton(
+                                  onPressed: () => _toggleJoin(event),
+                                  child: const Text('Hemen Katıl'),
+                                ),
+                                OutlinedButton.icon(
+                                  onPressed: () => _startReservation(event),
+                                  icon: const Icon(Icons.timer_outlined, size: 16),
+                                  label: const Text('5 Dk Ayır (Kilit)'),
+                                ),
+                              ],
                             ),
-                            onPressed: () => _toggleJoin(event),
-                            child: Text(
-                              isRegistered
-                                  ? 'Katılıyorsun (İptal Et)'
-                                  : isWaitlist
-                                      ? 'Yedek Listedesin (İptal Et)'
-                                      : 'Etkinliğe Katıl',
-                            ),
-                          ),
                         ],
                       ),
                     ),
