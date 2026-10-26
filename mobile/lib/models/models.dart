@@ -391,3 +391,103 @@ class LeaderboardEntryModel {
   }
 }
 
+class StarterGearModel {
+  final int id;
+  final int hobbyId;
+  final String hobbyName;
+  final String name;
+  final String icon;
+  final bool mandatory;
+  final String estimatedBudget;
+  final String advice;
+  final int priorityOrder;
+
+  StarterGearModel({
+    required this.id,
+    required this.hobbyId,
+    required this.hobbyName,
+    required this.name,
+    required this.icon,
+    required this.mandatory,
+    required this.estimatedBudget,
+    required this.advice,
+    required this.priorityOrder,
+  });
+
+  factory StarterGearModel.fromJson(Map<String, dynamic> json) {
+    return StarterGearModel(
+      id: json['id'] as int,
+      hobbyId: json['hobbyId'] as int? ?? 0,
+      hobbyName: json['hobbyName'] as String? ?? '',
+      name: json['name'] as String? ?? '',
+      icon: json['icon'] as String? ?? '🎒',
+      mandatory: json['mandatory'] as bool? ?? false,
+      estimatedBudget: json['estimatedBudget'] as String? ?? '',
+      advice: json['advice'] as String? ?? '',
+      priorityOrder: json['priorityOrder'] as int? ?? 0,
+    );
+  }
+}
+
+class GearTransferModel {
+  final int id;
+  final int ownerId;
+  final String ownerUsername;
+  final String ownerFullName;
+  final String? ownerAvatar;
+  final int hobbyId;
+  final String hobbyName;
+  final String hobbyIcon;
+  final String title;
+  final String description;
+  final String transferType;
+  final String itemCondition;
+  final String location;
+  final String contactInfo;
+  final String? imageUrl;
+  final String status;
+  final String createdAt;
+
+  GearTransferModel({
+    required this.id,
+    required this.ownerId,
+    required this.ownerUsername,
+    required this.ownerFullName,
+    this.ownerAvatar,
+    required this.hobbyId,
+    required this.hobbyName,
+    required this.hobbyIcon,
+    required this.title,
+    required this.description,
+    required this.transferType,
+    required this.itemCondition,
+    required this.location,
+    required this.contactInfo,
+    this.imageUrl,
+    required this.status,
+    required this.createdAt,
+  });
+
+  factory GearTransferModel.fromJson(Map<String, dynamic> json) {
+    return GearTransferModel(
+      id: json['id'] as int,
+      ownerId: json['ownerId'] as int? ?? 0,
+      ownerUsername: json['ownerUsername'] as String? ?? 'Kullanıcı',
+      ownerFullName: json['ownerFullName'] as String? ?? '',
+      ownerAvatar: json['ownerAvatar'] as String?,
+      hobbyId: json['hobbyId'] as int? ?? 0,
+      hobbyName: json['hobbyName'] as String? ?? '',
+      hobbyIcon: json['hobbyIcon'] as String? ?? '🎒',
+      title: json['title'] as String? ?? '',
+      description: json['description'] as String? ?? '',
+      transferType: json['transferType'] as String? ?? 'GIFT',
+      itemCondition: json['itemCondition'] as String? ?? 'İyi',
+      location: json['location'] as String? ?? '',
+      contactInfo: json['contactInfo'] as String? ?? '',
+      imageUrl: json['imageUrl'] as String?,
+      status: json['status'] as String? ?? 'AVAILABLE',
+      createdAt: json['createdAt'] as String? ?? '',
+    );
+  }
+}
+

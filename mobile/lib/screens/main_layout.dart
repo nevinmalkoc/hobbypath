@@ -6,6 +6,7 @@ import '../models/models.dart';
 import 'community_detail_screen.dart';
 import 'daily_puzzle_screen.dart';
 import 'login_screen.dart';
+import 'starter_gear_screen.dart';
 
 class MainLayout extends StatefulWidget {
   const MainLayout({super.key});
@@ -281,6 +282,16 @@ class _FeedTabState extends State<FeedTab> {
         ),
         actions: [
           IconButton(
+            tooltip: 'Acemi Çantası & Devir',
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const StarterGearScreen()),
+              );
+            },
+            icon: const Icon(Icons.backpack_outlined),
+          ),
+          IconButton(
             tooltip: 'Bildirimler',
             onPressed: _showNotificationsSheet,
             icon: Badge(
@@ -354,6 +365,74 @@ class _FeedTabState extends State<FeedTab> {
                                   ),
                                   const Text(
                                     'Çöz, süreni ölç, sıralamada yerini al! ⏱️',
+                                    style: TextStyle(fontSize: 12, color: Colors.white70),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const Icon(Icons.arrow_forward_ios, size: 16, color: Colors.white70),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+
+                  // Acemi Çantası & Devir Banner'ı
+                  Card(
+                    elevation: 2,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                    child: InkWell(
+                      borderRadius: BorderRadius.circular(16),
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (_) => const StarterGearScreen()),
+                        );
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(16),
+                          gradient: LinearGradient(
+                            colors: [Colors.teal.shade800, Colors.teal.shade500],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          ),
+                        ),
+                        child: Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: Colors.white.withValues(alpha: 0.2),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: const Text('🎒', style: TextStyle(fontSize: 28)),
+                            ),
+                            const SizedBox(width: 14),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                    decoration: BoxDecoration(
+                                      color: Colors.amber.shade300,
+                                      borderRadius: BorderRadius.circular(6),
+                                    ),
+                                    child: const Text(
+                                      'ÖĞRENCİ & BAŞLANGIÇ REHBERİ',
+                                      style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.black87),
+                                    ),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  const Text(
+                                    'Acemi Çantası & Devir',
+                                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
+                                  ),
+                                  const Text(
+                                    'Gerekli ekipmanlar & elden ele dayanışma 🤝',
                                     style: TextStyle(fontSize: 12, color: Colors.white70),
                                   ),
                                 ],
