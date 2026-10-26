@@ -318,3 +318,73 @@ class NotificationModel {
   }
 }
 
+class DailyPuzzleModel {
+  final int id;
+  final String puzzleDate;
+  final String hobbyName;
+  final String hobbyIcon;
+  final String title;
+  final String clue;
+  final int answerLength;
+  final String scrambledLetters;
+  final bool alreadySolved;
+  final int? myCompletionTimeSeconds;
+
+  DailyPuzzleModel({
+    required this.id,
+    required this.puzzleDate,
+    required this.hobbyName,
+    required this.hobbyIcon,
+    required this.title,
+    required this.clue,
+    required this.answerLength,
+    required this.scrambledLetters,
+    required this.alreadySolved,
+    this.myCompletionTimeSeconds,
+  });
+
+  factory DailyPuzzleModel.fromJson(Map<String, dynamic> json) {
+    return DailyPuzzleModel(
+      id: json['id'] as int,
+      puzzleDate: json['puzzleDate'] as String? ?? '',
+      hobbyName: json['hobbyName'] as String? ?? 'Hobi',
+      hobbyIcon: json['hobbyIcon'] as String? ?? '🧩',
+      title: json['title'] as String? ?? '',
+      clue: json['clue'] as String? ?? '',
+      answerLength: json['answerLength'] as int? ?? 5,
+      scrambledLetters: json['scrambledLetters'] as String? ?? '',
+      alreadySolved: json['alreadySolved'] as bool? ?? false,
+      myCompletionTimeSeconds: json['myCompletionTimeSeconds'] as int?,
+    );
+  }
+}
+
+class LeaderboardEntryModel {
+  final int rank;
+  final int userId;
+  final String username;
+  final String fullName;
+  final int completionTimeSeconds;
+  final String solvedAt;
+
+  LeaderboardEntryModel({
+    required this.rank,
+    required this.userId,
+    required this.username,
+    required this.fullName,
+    required this.completionTimeSeconds,
+    required this.solvedAt,
+  });
+
+  factory LeaderboardEntryModel.fromJson(Map<String, dynamic> json) {
+    return LeaderboardEntryModel(
+      rank: json['rank'] as int? ?? 1,
+      userId: json['userId'] as int? ?? 0,
+      username: json['username'] as String? ?? 'Kullanıcı',
+      fullName: json['fullName'] as String? ?? '',
+      completionTimeSeconds: json['completionTimeSeconds'] as int? ?? 0,
+      solvedAt: json['solvedAt'] as String? ?? '',
+    );
+  }
+}
+
