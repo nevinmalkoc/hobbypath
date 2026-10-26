@@ -503,3 +503,112 @@ class GearTransferModel {
   }
 }
 
+class BuddyRequestModel {
+  final int id;
+  final int creatorId;
+  final String creatorUsername;
+  final String creatorFullName;
+  final String? creatorAvatar;
+  final String creatorGender;
+  final int hobbyId;
+  final String hobbyName;
+  final String hobbyIcon;
+  final String title;
+  final String description;
+  final String intention;
+  final String genderPreference;
+  final String location;
+  final String preferredTime;
+  final String status;
+  final String createdAt;
+  final int matchCount;
+  final bool hasApplied;
+
+  BuddyRequestModel({
+    required this.id,
+    required this.creatorId,
+    required this.creatorUsername,
+    required this.creatorFullName,
+    this.creatorAvatar,
+    required this.creatorGender,
+    required this.hobbyId,
+    required this.hobbyName,
+    required this.hobbyIcon,
+    required this.title,
+    required this.description,
+    required this.intention,
+    required this.genderPreference,
+    required this.location,
+    required this.preferredTime,
+    required this.status,
+    required this.createdAt,
+    required this.matchCount,
+    required this.hasApplied,
+  });
+
+  factory BuddyRequestModel.fromJson(Map<String, dynamic> json) {
+    return BuddyRequestModel(
+      id: json['id'] as int,
+      creatorId: json['creatorId'] as int? ?? 0,
+      creatorUsername: json['creatorUsername'] as String? ?? 'Kullanıcı',
+      creatorFullName: json['creatorFullName'] as String? ?? '',
+      creatorAvatar: json['creatorAvatar'] as String?,
+      creatorGender: json['creatorGender'] as String? ?? 'Belirtilmedi',
+      hobbyId: json['hobbyId'] as int? ?? 0,
+      hobbyName: json['hobbyName'] as String? ?? '',
+      hobbyIcon: json['hobbyIcon'] as String? ?? '🤝',
+      title: json['title'] as String? ?? '',
+      description: json['description'] as String? ?? '',
+      intention: json['intention'] as String? ?? 'FRIENDSHIP',
+      genderPreference: json['genderPreference'] as String? ?? 'ANY',
+      location: json['location'] as String? ?? '',
+      preferredTime: json['preferredTime'] as String? ?? '',
+      status: json['status'] as String? ?? 'OPEN',
+      createdAt: json['createdAt'] as String? ?? '',
+      matchCount: json['matchCount'] as int? ?? 0,
+      hasApplied: json['hasApplied'] as bool? ?? false,
+    );
+  }
+}
+
+class BuddyMatchModel {
+  final int id;
+  final int requestId;
+  final String requestTitle;
+  final int applicantId;
+  final String applicantUsername;
+  final String applicantFullName;
+  final String? applicantAvatar;
+  final String message;
+  final String status;
+  final String createdAt;
+
+  BuddyMatchModel({
+    required this.id,
+    required this.requestId,
+    required this.requestTitle,
+    required this.applicantId,
+    required this.applicantUsername,
+    required this.applicantFullName,
+    this.applicantAvatar,
+    required this.message,
+    required this.status,
+    required this.createdAt,
+  });
+
+  factory BuddyMatchModel.fromJson(Map<String, dynamic> json) {
+    return BuddyMatchModel(
+      id: json['id'] as int,
+      requestId: json['requestId'] as int? ?? 0,
+      requestTitle: json['requestTitle'] as String? ?? '',
+      applicantId: json['applicantId'] as int? ?? 0,
+      applicantUsername: json['applicantUsername'] as String? ?? 'Kullanıcı',
+      applicantFullName: json['applicantFullName'] as String? ?? '',
+      applicantAvatar: json['applicantAvatar'] as String?,
+      message: json['message'] as String? ?? '',
+      status: json['status'] as String? ?? 'PENDING',
+      createdAt: json['createdAt'] as String? ?? '',
+    );
+  }
+}
+

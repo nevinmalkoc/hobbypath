@@ -48,6 +48,7 @@ public class SecurityConfig {
                         .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/v1/feed/**").permitAll()
                         .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/v1/gear/**").permitAll()
                         .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/v1/puzzle/**").permitAll()
+                        .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/v1/buddy/**").permitAll()
                         .anyRequest().authenticated()
                 )
                 .sessionManagement(sess -> sess.sessionCreationPolicy(SessionCreationPolicy.STATELESS))

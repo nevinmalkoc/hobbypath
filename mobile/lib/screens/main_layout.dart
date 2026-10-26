@@ -7,6 +7,7 @@ import 'community_detail_screen.dart';
 import 'daily_puzzle_screen.dart';
 import 'login_screen.dart';
 import 'starter_gear_screen.dart';
+import 'buddy_match_screen.dart';
 import '../widgets/interactive_event_map.dart';
 
 class MainLayout extends StatefulWidget {
@@ -283,6 +284,16 @@ class _FeedTabState extends State<FeedTab> {
         ),
         actions: [
           IconButton(
+            tooltip: 'Hobi Partneri Bul',
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const BuddyMatchScreen()),
+              );
+            },
+            icon: const Icon(Icons.people_outline),
+          ),
+          IconButton(
             tooltip: 'Acemi Çantası & Devir',
             onPressed: () {
               Navigator.push(
@@ -434,6 +445,74 @@ class _FeedTabState extends State<FeedTab> {
                                   ),
                                   const Text(
                                     'Gerekli ekipmanlar & elden ele dayanışma 🤝',
+                                    style: TextStyle(fontSize: 12, color: Colors.white70),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const Icon(Icons.arrow_forward_ios, size: 16, color: Colors.white70),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+
+                  // Hobi Partneri Bul Banner'ı (Arkadaşlık / Spor / Flört)
+                  Card(
+                    elevation: 2,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                    child: InkWell(
+                      borderRadius: BorderRadius.circular(16),
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (_) => const BuddyMatchScreen()),
+                        );
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(16),
+                          gradient: LinearGradient(
+                            colors: [Colors.purple.shade900, Colors.pink.shade700],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          ),
+                        ),
+                        child: Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: Colors.white.withValues(alpha: 0.2),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: const Text('🤝', style: TextStyle(fontSize: 28)),
+                            ),
+                            const SizedBox(width: 14),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                    decoration: BoxDecoration(
+                                      color: Colors.pink.shade200,
+                                      borderRadius: BorderRadius.circular(6),
+                                    ),
+                                    child: const Text(
+                                      '1\'E 1 EŞLEŞME & FLÖRT & SPOR',
+                                      style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.black87),
+                                    ),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  const Text(
+                                    'Hobi Partneri Bul',
+                                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
+                                  ),
+                                  const Text(
+                                    'Atölye arkadaşı, tenis partneri ya da kahve! ☕❤️',
                                     style: TextStyle(fontSize: 12, color: Colors.white70),
                                   ),
                                 ],
