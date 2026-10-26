@@ -8,6 +8,7 @@ import 'daily_puzzle_screen.dart';
 import 'login_screen.dart';
 import 'starter_gear_screen.dart';
 import 'buddy_match_screen.dart';
+import 'ai_assistant_screen.dart';
 import '../widgets/interactive_event_map.dart';
 
 class MainLayout extends StatefulWidget {
@@ -284,6 +285,16 @@ class _FeedTabState extends State<FeedTab> {
         ),
         actions: [
           IconButton(
+            tooltip: 'HobbyPath AI Koçu',
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const AiAssistantScreen()),
+              );
+            },
+            icon: const Icon(Icons.smart_toy_outlined, color: Colors.deepOrange),
+          ),
+          IconButton(
             tooltip: 'Hobi Partneri Bul',
             onPressed: () {
               Navigator.push(
@@ -322,7 +333,7 @@ class _FeedTabState extends State<FeedTab> {
               child: ListView(
                 padding: const EdgeInsets.all(16),
                 children: [
-                  // Günün Hobi Bulmacası Banner'ı (LinkedIn Tarzı)
+                  // Hobi Oyun Salonu (Arcade - 3 Oyun)
                   Card(
                     elevation: 2,
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
@@ -352,7 +363,84 @@ class _FeedTabState extends State<FeedTab> {
                                 color: Colors.white.withValues(alpha: 0.2),
                                 borderRadius: BorderRadius.circular(12),
                               ),
-                              child: const Text('🧩', style: TextStyle(fontSize: 28)),
+                              child: const Text('🎮', style: TextStyle(fontSize: 28)),
+                            ),
+                            const SizedBox(width: 14),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    children: [
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                        decoration: BoxDecoration(
+                                          color: Colors.amber,
+                                          borderRadius: BorderRadius.circular(6),
+                                        ),
+                                        child: const Text(
+                                          'HOBİ ARCADE',
+                                          style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.black87),
+                                        ),
+                                      ),
+                                      const SizedBox(width: 6),
+                                      const Text(
+                                        '3 Yeni Oyun 🔥',
+                                        style: TextStyle(fontSize: 11, color: Colors.amber, fontWeight: FontWeight.bold),
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 4),
+                                  const Text(
+                                    'Hobi Oyun Salonu',
+                                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
+                                  ),
+                                  const Text(
+                                    'Kelime Avı · 5 Soru Trivia · Hafıza Kartı',
+                                    style: TextStyle(fontSize: 12, color: Colors.white70),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const Icon(Icons.arrow_forward_ios, size: 16, color: Colors.white70),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+
+                  // HobbyPath AI Koçu Banner'ı
+                  Card(
+                    elevation: 2,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                    child: InkWell(
+                      borderRadius: BorderRadius.circular(16),
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (_) => const AiAssistantScreen()),
+                        );
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(16),
+                          gradient: LinearGradient(
+                            colors: [Colors.indigo.shade800, Colors.blue.shade600],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          ),
+                        ),
+                        child: Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: Colors.white.withValues(alpha: 0.2),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: const Text('🤖', style: TextStyle(fontSize: 28)),
                             ),
                             const SizedBox(width: 14),
                             Expanded(
@@ -362,21 +450,21 @@ class _FeedTabState extends State<FeedTab> {
                                   Container(
                                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                                     decoration: BoxDecoration(
-                                      color: Colors.amber,
+                                      color: Colors.cyanAccent.shade400,
                                       borderRadius: BorderRadius.circular(6),
                                     ),
                                     child: const Text(
-                                      'GÜNÜN OYUNU',
+                                      'YAPAY ZEKA DESTEĞİ',
                                       style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.black87),
                                     ),
                                   ),
                                   const SizedBox(height: 4),
                                   const Text(
-                                    'Günün Hobi Bulmacası',
+                                    'HobbyPath AI Hobi Koçu',
                                     style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
                                   ),
                                   const Text(
-                                    'Çöz, süreni ölç, sıralamada yerini al! ⏱️',
+                                    'Yeni hobiler, antrenman planları & tüyolar sor! ✨',
                                     style: TextStyle(fontSize: 12, color: Colors.white70),
                                   ),
                                 ],
@@ -1648,7 +1736,7 @@ class _ProfileTabState extends State<ProfileTab> {
       radius: radius,
       backgroundColor: Colors.blue.shade100,
       child: Text(
-        avatar.isNotEmpty ? avatar : '🏇',
+        avatar.isNotEmpty ? avatar : '👤',
         style: TextStyle(fontSize: radius * 0.95),
       ),
     );

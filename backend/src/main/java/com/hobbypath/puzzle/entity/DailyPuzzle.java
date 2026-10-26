@@ -10,7 +10,7 @@ import java.time.Instant;
 
 @Entity
 @Table(name = "daily_puzzles", indexes = {
-        @Index(name = "idx_daily_puzzle_date", columnList = "puzzle_date", unique = true)
+        @Index(name = "idx_daily_puzzle_date_hobby", columnList = "puzzle_date, hobby_id")
 })
 @Getter
 @Setter
@@ -23,7 +23,7 @@ public class DailyPuzzle {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "puzzle_date", nullable = false, unique = true)
+    @Column(name = "puzzle_date", nullable = false)
     private LocalDate puzzleDate;
 
     @ManyToOne(fetch = FetchType.LAZY)

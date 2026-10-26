@@ -3,6 +3,7 @@ package com.hobbypath.puzzle.controller;
 import com.hobbypath.puzzle.dto.DailyPuzzleResponse;
 import com.hobbypath.puzzle.dto.LeaderboardEntryResponse;
 import com.hobbypath.puzzle.dto.SolvePuzzleRequest;
+import com.hobbypath.puzzle.dto.TriviaQuestionResponse;
 import com.hobbypath.puzzle.service.DailyPuzzleService;
 import com.hobbypath.user.entity.User;
 import jakarta.validation.Valid;
@@ -22,9 +23,17 @@ public class DailyPuzzleController {
 
     @GetMapping("/today")
     public ResponseEntity<DailyPuzzleResponse> getTodayPuzzle(
-            @AuthenticationPrincipal User currentUser
+            @AuthenticationPrincipal User currentUser,
+            @RequestParam(required = false) Long hobbyId
     ) {
-        return ResponseEntity.ok(puzzleService.getTodayPuzzle(currentUser));
+        return ResponseEntity.ok(puzzleService.getTodayPuzzle(currentUser, hobbyId));
+    }
+
+    @GetMapping("/trivia")
+    public ResponseEntity<List<TriviaQuestionResponse>> getTriviaQuestions(
+            @RequestParam(required = false) Long hobbyId
+    ) {
+        return ResponseEntity.ok(puzzleService.getTriviaQuestions(hobbyId));
     }
 
     @PostMapping("/{id}/solve")

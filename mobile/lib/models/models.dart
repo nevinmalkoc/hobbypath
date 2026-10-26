@@ -89,7 +89,7 @@ class UserModel {
       fullName: json['fullName'] as String? ?? '',
       bio: json['bio'] as String? ?? '',
       location: json['location'] as String? ?? '',
-      avatar: json['avatar'] as String? ?? '🏇',
+      avatar: json['avatar'] as String? ?? '👤',
       role: json['role'] as String? ?? 'ROLE_USER',
       hobbies: hobbyList,
     );
@@ -611,4 +611,66 @@ class BuddyMatchModel {
     );
   }
 }
+
+class TriviaQuestionModel {
+  final int id;
+  final int? hobbyId;
+  final String hobbyName;
+  final String hobbyIcon;
+  final String question;
+  final List<String> options;
+  final int correctIndex;
+  final String? explanation;
+  final String difficulty;
+
+  TriviaQuestionModel({
+    required this.id,
+    this.hobbyId,
+    required this.hobbyName,
+    required this.hobbyIcon,
+    required this.question,
+    required this.options,
+    required this.correctIndex,
+    this.explanation,
+    required this.difficulty,
+  });
+
+  factory TriviaQuestionModel.fromJson(Map<String, dynamic> json) {
+    return TriviaQuestionModel(
+      id: json['id'] as int,
+      hobbyId: json['hobbyId'] as int?,
+      hobbyName: json['hobbyName'] as String? ?? 'Genel Hobi',
+      hobbyIcon: json['hobbyIcon'] as String? ?? '💡',
+      question: json['question'] as String? ?? '',
+      options: (json['options'] as List? ?? []).map((e) => e.toString()).toList(),
+      correctIndex: json['correctIndex'] as int? ?? 0,
+      explanation: json['explanation'] as String?,
+      difficulty: json['difficulty'] as String? ?? 'ORTA',
+    );
+  }
+}
+
+class AiChatModel {
+  final String reply;
+  final String role;
+  final List<String> suggestions;
+  final String category;
+
+  AiChatModel({
+    required this.reply,
+    required this.role,
+    required this.suggestions,
+    required this.category,
+  });
+
+  factory AiChatModel.fromJson(Map<String, dynamic> json) {
+    return AiChatModel(
+      reply: json['reply'] as String? ?? '',
+      role: json['role'] as String? ?? 'assistant',
+      suggestions: (json['suggestions'] as List? ?? []).map((e) => e.toString()).toList(),
+      category: json['category'] as String? ?? 'Genel',
+    );
+  }
+}
+
 

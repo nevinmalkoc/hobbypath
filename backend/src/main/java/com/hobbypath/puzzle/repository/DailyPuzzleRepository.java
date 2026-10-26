@@ -10,7 +10,9 @@ import java.util.Optional;
 @Repository
 public interface DailyPuzzleRepository extends JpaRepository<DailyPuzzle, Long> {
 
-    Optional<DailyPuzzle> findByPuzzleDate(LocalDate puzzleDate);
+    Optional<DailyPuzzle> findFirstByPuzzleDate(LocalDate puzzleDate);
+
+    Optional<DailyPuzzle> findByPuzzleDateAndHobbyId(LocalDate puzzleDate, Long hobbyId);
 
     Optional<DailyPuzzle> findFirstByOrderByPuzzleDateDesc();
 }
