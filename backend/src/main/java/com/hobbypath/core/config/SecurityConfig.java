@@ -50,6 +50,7 @@ public class SecurityConfig {
                         .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/v1/puzzles/**").permitAll()
                         .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/v1/puzzle/**").permitAll()
                         .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/v1/buddy/**").permitAll()
+                        .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/v1/moments/**").permitAll()
                         .requestMatchers("/api/v1/ai/**").permitAll()
                         .anyRequest().authenticated()
                 )

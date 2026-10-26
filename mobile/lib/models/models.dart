@@ -673,4 +673,61 @@ class AiChatModel {
   }
 }
 
+class HobbyMomentModel {
+  final int id;
+  final int userId;
+  final String username;
+  final String userFullName;
+  final String? userAvatar;
+  final int hobbyId;
+  final String hobbyName;
+  final String hobbyIcon;
+  final int? communityId;
+  final String? communityName;
+  final String caption;
+  final String imageUrl;
+  int likesCount;
+  bool likedByMe;
+  final String createdAt;
+
+  HobbyMomentModel({
+    required this.id,
+    required this.userId,
+    required this.username,
+    required this.userFullName,
+    this.userAvatar,
+    required this.hobbyId,
+    required this.hobbyName,
+    required this.hobbyIcon,
+    this.communityId,
+    this.communityName,
+    required this.caption,
+    required this.imageUrl,
+    required this.likesCount,
+    required this.likedByMe,
+    required this.createdAt,
+  });
+
+  factory HobbyMomentModel.fromJson(Map<String, dynamic> json) {
+    return HobbyMomentModel(
+      id: json['id'] as int,
+      userId: json['userId'] as int? ?? 0,
+      username: json['username'] as String? ?? 'Kullanıcı',
+      userFullName: json['userFullName'] as String? ?? '',
+      userAvatar: json['userAvatar'] as String?,
+      hobbyId: json['hobbyId'] as int? ?? 0,
+      hobbyName: json['hobbyName'] as String? ?? 'Hobi',
+      hobbyIcon: json['hobbyIcon'] as String? ?? '✨',
+      communityId: json['communityId'] as int?,
+      communityName: json['communityName'] as String?,
+      caption: json['caption'] as String? ?? '',
+      imageUrl: json['imageUrl'] as String? ?? '',
+      likesCount: json['likesCount'] as int? ?? 0,
+      likedByMe: json['likedByMe'] as bool? ?? false,
+      createdAt: json['createdAt'] as String? ?? '',
+    );
+  }
+}
+
+
 

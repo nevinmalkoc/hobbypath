@@ -80,6 +80,7 @@ class FeedTab extends StatefulWidget {
 class _FeedTabState extends State<FeedTab> {
   List<PostModel> _posts = [];
   List<EventModel> _events = [];
+  List<HobbyMomentModel> _moments = [];
   bool _isLoading = true;
   int _unreadCount = 0;
 
@@ -103,23 +104,45 @@ class _FeedTabState extends State<FeedTab> {
 
   Future<void> _fetchFeed() async {
     try {
-      final response = await ApiClient().dio.get('/feed');
-      final postsData = (response.data['communityPosts'] as List? ?? [])
+      final feedFuture = ApiClient().dio.get('/feed');
+      final momentsFuture = ApiClient().dio.get('/moments');
+
+      final results = await Future.wait([feedFuture, momentsFuture]);
+
+      final feedData = results[0].data as Map<String, dynamic>;
+      final postsData = (feedData['communityPosts'] as List? ?? [])
           .map((e) => PostModel.fromJson(e as Map<String, dynamic>))
           .toList();
-      final eventsData = (response.data['upcomingEvents'] as List? ?? [])
+      final eventsData = (feedData['upcomingEvents'] as List? ?? [])
           .map((e) => EventModel.fromJson(e as Map<String, dynamic>))
           .toList();
 
-      setState(() {
-        _posts = postsData;
-        _events = eventsData;
-        _isLoading = false;
-      });
-      _fetchUnreadCount();
+      final momentsData = (results[1].data as List? ?? [])
+          .map((e) => HobbyMomentModel.fromJson(e as Map<String, dynamic>))
+          .toList();
+
+      if (mounted) {
+        setState(() {
+          _posts = postsData;
+          _events = eventsData;
+          _moments = momentsData;
+          _isLoading = false;
+        });
+        _fetchUnreadCount();
+      }
     } catch (e) {
       if (mounted) setState(() => _isLoading = false);
     }
+  }
+
+  Future<void> _likeMoment(HobbyMomentModel moment) async {
+    try {
+      await ApiClient().dio.post('/moments/${moment.id}/like');
+      setState(() {
+        moment.likesCount++;
+        moment.likedByMe = true;
+      });
+    } catch (_) {}
   }
 
   void _showNotificationsSheet() async {
@@ -272,6 +295,236 @@ class _FeedTabState extends State<FeedTab> {
     );
   }
 
+  void _showStoryViewer(HobbyMomentModel moment) {
+    showDialog(
+      context: context,
+      builder: (ctx) => Dialog(
+        backgroundColor: Colors.transparent,
+        insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+        child: Container(
+          constraints: const BoxConstraints(maxWidth: 420, maxHeight: 600),
+          decoration: BoxDecoration(
+            color: Colors.black,
+            borderRadius: BorderRadius.circular(24),
+            image: DecorationImage(
+              image: NetworkImage(moment.imageUrl),
+              fit: BoxFit.cover,
+            ),
+          ),
+          child: Container(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(24),
+              gradient: LinearGradient(
+                colors: [
+                  Colors.black.withValues(alpha: 0.6),
+                  Colors.transparent,
+                  Colors.black.withValues(alpha: 0.85),
+                ],
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+              ),
+            ),
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    CircleAvatar(
+                      radius: 18,
+                      backgroundColor: Colors.white,
+                      child: Text(moment.hobbyIcon, style: const TextStyle(fontSize: 18)),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            moment.userFullName.isNotEmpty ? moment.userFullName : moment.username,
+                            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14),
+                          ),
+                          Text(
+                            moment.hobbyName,
+                            style: const TextStyle(color: Colors.white70, fontSize: 11),
+                          ),
+                        ],
+                      ),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.close, color: Colors.white),
+                      onPressed: () => Navigator.pop(ctx),
+                    ),
+                  ],
+                ),
+                const Spacer(),
+                Text(
+                  moment.caption,
+                  style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold, height: 1.3),
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    InkWell(
+                      onTap: () {
+                        _likeMoment(moment);
+                        Navigator.pop(ctx);
+                        _showStoryViewer(moment);
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.25),
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(
+                              moment.likedByMe ? Icons.favorite : Icons.favorite_border,
+                              color: moment.likedByMe ? Colors.red : Colors.white,
+                              size: 18,
+                            ),
+                            const SizedBox(width: 6),
+                            Text(
+                              '${moment.likesCount} Beğeni',
+                              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const Spacer(),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: Colors.deepOrange,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: const Text(
+                        'Şipşak Anı ⚡',
+                        style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _showCreateMomentSheet() {
+    final captionController = TextEditingController();
+    final urlController = TextEditingController();
+    int selectedHobbyId = 1;
+
+    final presets = [
+      {'title': 'Seramik Kupa 🏺', 'url': 'https://images.unsplash.com/photo-1565193566173-7a0ee3dbe261?auto=format&fit=crop&w=800&q=80', 'hobbyId': 2},
+      {'title': 'At Binişi 🐎', 'url': 'https://images.unsplash.com/photo-1553284965-83fd3e82fa5a?auto=format&fit=crop&w=800&q=80', 'hobbyId': 1},
+      {'title': 'Sabah Koşusu 🏃', 'url': 'https://images.unsplash.com/photo-1476480862126-209bfaa8edc8?auto=format&fit=crop&w=800&q=80', 'hobbyId': 5},
+      {'title': 'Balat Çekimi 📸', 'url': 'https://images.unsplash.com/photo-1502982720700-bfff97f2ecac?auto=format&fit=crop&w=800&q=80', 'hobbyId': 3},
+      {'title': 'Taze Makarna 🍳', 'url': 'https://images.unsplash.com/photo-1551183053-bf91a1d81141?auto=format&fit=crop&w=800&q=80', 'hobbyId': 7},
+    ];
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
+      builder: (ctx) => StatefulBuilder(
+        builder: (context, setSheetState) => Padding(
+          padding: EdgeInsets.only(
+            left: 20, right: 20, top: 20,
+            bottom: MediaQuery.of(ctx).viewInsets.bottom + 20,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(
+                  width: 40, height: 4,
+                  decoration: BoxDecoration(color: Colors.grey.shade300, borderRadius: BorderRadius.circular(2)),
+                ),
+              ),
+              const SizedBox(height: 16),
+              const Text('Hobi Şipşakı Paylaş 📸', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+              const Text('Bugünkü hobi anından hızlı bir fotoğraf veya durum paylaş!', style: TextStyle(fontSize: 13, color: Colors.grey)),
+              const SizedBox(height: 16),
+              SizedBox(
+                height: 38,
+                child: ListView.separated(
+                  scrollDirection: Axis.horizontal,
+                  itemCount: presets.length,
+                  separatorBuilder: (c, idx) => const SizedBox(width: 8),
+                  itemBuilder: (_, i) {
+                    final p = presets[i];
+                    return ActionChip(
+                      label: Text(p['title'] as String, style: const TextStyle(fontSize: 12)),
+                      onPressed: () {
+                        setSheetState(() {
+                          urlController.text = p['url'] as String;
+                          selectedHobbyId = p['hobbyId'] as int;
+                        });
+                      },
+                    );
+                  },
+                ),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: urlController,
+                decoration: const InputDecoration(
+                  labelText: 'Fotoğraf Bağlantısı (URL)',
+                  hintText: 'https://images.unsplash.com/...',
+                  prefixIcon: Icon(Icons.link),
+                ),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: captionController,
+                decoration: const InputDecoration(
+                  labelText: 'Başlık / Not',
+                  hintText: 'Bugün harika bir çalışma yaptık...',
+                  prefixIcon: Icon(Icons.edit_note),
+                ),
+              ),
+              const SizedBox(height: 16),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  onPressed: () async {
+                    if (urlController.text.trim().isEmpty || captionController.text.trim().isEmpty) return;
+                    try {
+                      await ApiClient().dio.post(
+                        '/moments',
+                        data: {
+                          'hobbyId': selectedHobbyId,
+                          'caption': captionController.text.trim(),
+                          'imageUrl': urlController.text.trim(),
+                        },
+                      );
+                      Navigator.pop(ctx);
+                      _fetchFeed();
+                      if (mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Şipşak anın akışa eklendi! 🎉'), backgroundColor: Colors.green),
+                        );
+                      }
+                    } catch (_) {}
+                  },
+                  icon: const Icon(Icons.bolt),
+                  label: const Text('Şipşak Paylaş 🚀'),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -330,289 +583,300 @@ class _FeedTabState extends State<FeedTab> {
           ? const Center(child: CircularProgressIndicator())
           : RefreshIndicator(
               onRefresh: _fetchFeed,
-              child: ListView(
-                padding: const EdgeInsets.all(16),
-                children: [
-                  // Hobi Oyun Salonu (Arcade - 3 Oyun)
-                  Card(
-                    elevation: 2,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                    child: InkWell(
-                      borderRadius: BorderRadius.circular(16),
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(builder: (_) => const DailyPuzzleScreen()),
-                        );
-                      },
-                      child: Container(
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(16),
-                          gradient: LinearGradient(
-                            colors: [Colors.deepPurple.shade700, Colors.purple.shade500],
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                          ),
-                        ),
-                        child: Row(
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.all(12),
-                              decoration: BoxDecoration(
-                                color: Colors.white.withValues(alpha: 0.2),
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              child: const Text('🎮', style: TextStyle(fontSize: 28)),
-                            ),
-                            const SizedBox(width: 14),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Row(
-                                    children: [
-                                      Container(
-                                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                                        decoration: BoxDecoration(
-                                          color: Colors.amber,
-                                          borderRadius: BorderRadius.circular(6),
+              child: Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 620),
+                  child: ListView(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    children: [
+                      // 1. 📸 HOBİ ŞİPŞAKLARI (STORIES BAR)
+                      SizedBox(
+                        height: 104,
+                        child: ListView.separated(
+                          scrollDirection: Axis.horizontal,
+                          itemCount: 1 + _moments.length,
+                          separatorBuilder: (context, index) => const SizedBox(width: 14),
+                          itemBuilder: (context, index) {
+                            if (index == 0) {
+                              return GestureDetector(
+                                onTap: _showCreateMomentSheet,
+                                child: Column(
+                                  children: [
+                                    Stack(
+                                      children: [
+                                        Container(
+                                          width: 66,
+                                          height: 66,
+                                          decoration: BoxDecoration(
+                                            shape: BoxShape.circle,
+                                            border: Border.all(color: Colors.deepOrange.shade300, width: 2),
+                                            color: Colors.deepOrange.shade50,
+                                          ),
+                                          child: const Center(
+                                            child: Text('📸', style: TextStyle(fontSize: 26)),
+                                          ),
                                         ),
-                                        child: const Text(
-                                          'HOBİ ARCADE',
-                                          style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.black87),
+                                        Positioned(
+                                          bottom: 0,
+                                          right: 0,
+                                          child: Container(
+                                            padding: const EdgeInsets.all(2),
+                                            decoration: const BoxDecoration(
+                                              color: Colors.deepOrange,
+                                              shape: BoxShape.circle,
+                                            ),
+                                            child: const Icon(Icons.add, color: Colors.white, size: 16),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 6),
+                                    const Text(
+                                      'Şipşak At',
+                                      style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+                                    ),
+                                  ],
+                                ),
+                              );
+                            }
+
+                            final moment = _moments[index - 1];
+                            return GestureDetector(
+                              onTap: () => _showStoryViewer(moment),
+                              child: Column(
+                                children: [
+                                  Container(
+                                    padding: const EdgeInsets.all(3),
+                                    decoration: BoxDecoration(
+                                      shape: BoxShape.circle,
+                                      gradient: LinearGradient(
+                                        colors: [Colors.deepOrange, Colors.amber.shade700, Colors.purple.shade600],
+                                        begin: Alignment.topLeft,
+                                        end: Alignment.bottomRight,
+                                      ),
+                                    ),
+                                    child: Container(
+                                      width: 60,
+                                      height: 60,
+                                      decoration: BoxDecoration(
+                                        shape: BoxShape.circle,
+                                        color: Colors.white,
+                                        image: DecorationImage(
+                                          image: NetworkImage(moment.imageUrl),
+                                          fit: BoxFit.cover,
                                         ),
                                       ),
-                                      const SizedBox(width: 6),
-                                      const Text(
-                                        '3 Yeni Oyun 🔥',
-                                        style: TextStyle(fontSize: 11, color: Colors.amber, fontWeight: FontWeight.bold),
+                                      child: Align(
+                                        alignment: Alignment.bottomRight,
+                                        child: Container(
+                                          padding: const EdgeInsets.all(2),
+                                          decoration: const BoxDecoration(
+                                            color: Colors.white,
+                                            shape: BoxShape.circle,
+                                          ),
+                                          child: Text(moment.hobbyIcon, style: const TextStyle(fontSize: 12)),
+                                        ),
                                       ),
-                                    ],
+                                    ),
                                   ),
-                                  const SizedBox(height: 4),
-                                  const Text(
-                                    'Hobi Oyun Salonu',
-                                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
-                                  ),
-                                  const Text(
-                                    'Kelime Avı · 5 Soru Trivia · Hafıza Kartı',
-                                    style: TextStyle(fontSize: 12, color: Colors.white70),
+                                  const SizedBox(height: 6),
+                                  SizedBox(
+                                    width: 70,
+                                    child: Text(
+                                      moment.userFullName.isNotEmpty
+                                          ? moment.userFullName.split(' ').first
+                                          : moment.username,
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      textAlign: TextAlign.center,
+                                      style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+                                    ),
                                   ),
                                 ],
                               ),
-                            ),
-                            const Icon(Icons.arrow_forward_ios, size: 16, color: Colors.white70),
-                          ],
+                            );
+                          },
                         ),
                       ),
-                    ),
-                  ),
-                  const SizedBox(height: 12),
+                      const SizedBox(height: 16),
 
-                  // HobbyPath AI Koçu Banner'ı
-                  Card(
-                    elevation: 2,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                    child: InkWell(
-                      borderRadius: BorderRadius.circular(16),
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(builder: (_) => const AiAssistantScreen()),
-                        );
-                      },
-                      child: Container(
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(16),
-                          gradient: LinearGradient(
-                            colors: [Colors.indigo.shade800, Colors.blue.shade600],
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
+                      // 2. ⚡ HIZLI ERİŞİM MERKEZİ (2x2 GRID - KİBAR VE DENGELİ)
+                      Row(
+                        children: [
+                          Expanded(
+                            child: InkWell(
+                              borderRadius: BorderRadius.circular(16),
+                              onTap: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(builder: (_) => const DailyPuzzleScreen()),
+                                );
+                              },
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                                decoration: BoxDecoration(
+                                  color: Colors.purple.shade50,
+                                  borderRadius: BorderRadius.circular(16),
+                                  border: Border.all(color: Colors.purple.shade100),
+                                ),
+                                child: Row(
+                                  children: [
+                                    Container(
+                                      padding: const EdgeInsets.all(8),
+                                      decoration: BoxDecoration(
+                                        color: Colors.purple.shade100,
+                                        borderRadius: BorderRadius.circular(10),
+                                      ),
+                                      child: const Text('🎮', style: TextStyle(fontSize: 20)),
+                                    ),
+                                    const SizedBox(width: 10),
+                                    const Expanded(
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Text('Hobi Arcade', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                                          Text('3 Mini Oyun 🔥', style: TextStyle(fontSize: 11, color: Colors.purple)),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
                           ),
-                        ),
-                        child: Row(
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.all(12),
-                              decoration: BoxDecoration(
-                                color: Colors.white.withValues(alpha: 0.2),
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              child: const Text('🤖', style: TextStyle(fontSize: 28)),
-                            ),
-                            const SizedBox(width: 14),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                                    decoration: BoxDecoration(
-                                      color: Colors.cyanAccent.shade400,
-                                      borderRadius: BorderRadius.circular(6),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: InkWell(
+                              borderRadius: BorderRadius.circular(16),
+                              onTap: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(builder: (_) => const AiAssistantScreen()),
+                                );
+                              },
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                                decoration: BoxDecoration(
+                                  color: Colors.blue.shade50,
+                                  borderRadius: BorderRadius.circular(16),
+                                  border: Border.all(color: Colors.blue.shade100),
+                                ),
+                                child: Row(
+                                  children: [
+                                    Container(
+                                      padding: const EdgeInsets.all(8),
+                                      decoration: BoxDecoration(
+                                        color: Colors.blue.shade100,
+                                        borderRadius: BorderRadius.circular(10),
+                                      ),
+                                      child: const Text('🤖', style: TextStyle(fontSize: 20)),
                                     ),
-                                    child: const Text(
-                                      'YAPAY ZEKA DESTEĞİ',
-                                      style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.black87),
+                                    const SizedBox(width: 10),
+                                    const Expanded(
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Text('AI Hobi Koçu', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                                          Text('Tüyolar & Plan ✨', style: TextStyle(fontSize: 11, color: Colors.blue)),
+                                        ],
+                                      ),
                                     ),
-                                  ),
-                                  const SizedBox(height: 4),
-                                  const Text(
-                                    'HobbyPath AI Hobi Koçu',
-                                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
-                                  ),
-                                  const Text(
-                                    'Yeni hobiler, antrenman planları & tüyolar sor! ✨',
-                                    style: TextStyle(fontSize: 12, color: Colors.white70),
-                                  ),
-                                ],
+                                  ],
+                                ),
                               ),
                             ),
-                            const Icon(Icons.arrow_forward_ios, size: 16, color: Colors.white70),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-
-                  // Acemi Çantası & Devir Banner'ı
-                  Card(
-                    elevation: 2,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                    child: InkWell(
-                      borderRadius: BorderRadius.circular(16),
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(builder: (_) => const StarterGearScreen()),
-                        );
-                      },
-                      child: Container(
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(16),
-                          gradient: LinearGradient(
-                            colors: [Colors.teal.shade800, Colors.teal.shade500],
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
                           ),
-                        ),
-                        child: Row(
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.all(12),
-                              decoration: BoxDecoration(
-                                color: Colors.white.withValues(alpha: 0.2),
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              child: const Text('🎒', style: TextStyle(fontSize: 28)),
-                            ),
-                            const SizedBox(width: 14),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                                    decoration: BoxDecoration(
-                                      color: Colors.amber.shade300,
-                                      borderRadius: BorderRadius.circular(6),
-                                    ),
-                                    child: const Text(
-                                      'ÖĞRENCİ & BAŞLANGIÇ REHBERİ',
-                                      style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.black87),
-                                    ),
-                                  ),
-                                  const SizedBox(height: 4),
-                                  const Text(
-                                    'Acemi Çantası & Devir',
-                                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
-                                  ),
-                                  const Text(
-                                    'Gerekli ekipmanlar & elden ele dayanışma 🤝',
-                                    style: TextStyle(fontSize: 12, color: Colors.white70),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            const Icon(Icons.arrow_forward_ios, size: 16, color: Colors.white70),
-                          ],
-                        ),
+                        ],
                       ),
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-
-                  // Hobi Partneri Bul Banner'ı (Arkadaşlık / Spor / Flört)
-                  Card(
-                    elevation: 2,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                    child: InkWell(
-                      borderRadius: BorderRadius.circular(16),
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(builder: (_) => const BuddyMatchScreen()),
-                        );
-                      },
-                      child: Container(
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(16),
-                          gradient: LinearGradient(
-                            colors: [Colors.purple.shade900, Colors.pink.shade700],
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
+                      const SizedBox(height: 10),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: InkWell(
+                              borderRadius: BorderRadius.circular(16),
+                              onTap: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(builder: (_) => const StarterGearScreen()),
+                                );
+                              },
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                                decoration: BoxDecoration(
+                                  color: Colors.teal.shade50,
+                                  borderRadius: BorderRadius.circular(16),
+                                  border: Border.all(color: Colors.teal.shade100),
+                                ),
+                                child: Row(
+                                  children: [
+                                    Container(
+                                      padding: const EdgeInsets.all(8),
+                                      decoration: BoxDecoration(
+                                        color: Colors.teal.shade100,
+                                        borderRadius: BorderRadius.circular(10),
+                                      ),
+                                      child: const Text('🎒', style: TextStyle(fontSize: 20)),
+                                    ),
+                                    const SizedBox(width: 10),
+                                    const Expanded(
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Text('Acemi Çantası', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                                          Text('Ekipman & Devir 🤝', style: TextStyle(fontSize: 11, color: Colors.teal)),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
                           ),
-                        ),
-                        child: Row(
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.all(12),
-                              decoration: BoxDecoration(
-                                color: Colors.white.withValues(alpha: 0.2),
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              child: const Text('🤝', style: TextStyle(fontSize: 28)),
-                            ),
-                            const SizedBox(width: 14),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                                    decoration: BoxDecoration(
-                                      color: Colors.pink.shade200,
-                                      borderRadius: BorderRadius.circular(6),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: InkWell(
+                              borderRadius: BorderRadius.circular(16),
+                              onTap: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(builder: (_) => const BuddyMatchScreen()),
+                                );
+                              },
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                                decoration: BoxDecoration(
+                                  color: Colors.pink.shade50,
+                                  borderRadius: BorderRadius.circular(16),
+                                  border: Border.all(color: Colors.pink.shade100),
+                                ),
+                                child: Row(
+                                  children: [
+                                    Container(
+                                      padding: const EdgeInsets.all(8),
+                                      decoration: BoxDecoration(
+                                        color: Colors.pink.shade100,
+                                        borderRadius: BorderRadius.circular(10),
+                                      ),
+                                      child: const Text('🤝', style: TextStyle(fontSize: 20)),
                                     ),
-                                    child: const Text(
-                                      '1\'E 1 EŞLEŞME & FLÖRT & SPOR',
-                                      style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.black87),
+                                    const SizedBox(width: 10),
+                                    const Expanded(
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Text('Hobi Partneri', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                                          Text('Arkadaş & Spor ❤️', style: TextStyle(fontSize: 11, color: Colors.pink)),
+                                        ],
+                                      ),
                                     ),
-                                  ),
-                                  const SizedBox(height: 4),
-                                  const Text(
-                                    'Hobi Partneri Bul',
-                                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
-                                  ),
-                                  const Text(
-                                    'Atölye arkadaşı, tenis partneri ya da kahve! ☕❤️',
-                                    style: TextStyle(fontSize: 12, color: Colors.white70),
-                                  ),
-                                ],
+                                  ],
+                                ),
                               ),
                             ),
-                            const Icon(Icons.arrow_forward_ios, size: 16, color: Colors.white70),
-                          ],
-                        ),
+                          ),
+                        ],
                       ),
-                    ),
-                  ),
-                  const SizedBox(height: 18),
+                      const SizedBox(height: 20),
 
                   // Yaklaşan Etkinlikler Başlığı
                   if (_events.isNotEmpty) ...[
@@ -703,9 +967,168 @@ class _FeedTabState extends State<FeedTab> {
                     const SizedBox(height: 24),
                   ],
 
-                  // Topluluk Paylaşımları
+                  // 3. 📸 HOBİ ŞİPŞAKLARI AKIŞI (INSTAGRAM-STYLE MOMENTS)
+                  if (_moments.isNotEmpty) ...[
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Row(
+                          children: [
+                            Text('📸', style: TextStyle(fontSize: 18)),
+                            SizedBox(width: 6),
+                            Text(
+                              'Hobi Şipşakları',
+                              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                            ),
+                          ],
+                        ),
+                        TextButton.icon(
+                          onPressed: _showCreateMomentSheet,
+                          icon: const Icon(Icons.bolt, size: 16, color: Colors.deepOrange),
+                          label: const Text('Şipşak At', style: TextStyle(color: Colors.deepOrange, fontWeight: FontWeight.bold)),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 10),
+                    ..._moments.map((moment) => Card(
+                          margin: const EdgeInsets.only(bottom: 20),
+                          clipBehavior: Clip.antiAlias,
+                          elevation: 2,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(20),
+                            side: BorderSide(color: Colors.grey.shade200),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              // Üst Bilgi: Profil, İsim, Topluluk & Hobi Rozeti
+                              Padding(
+                                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                                child: Row(
+                                  children: [
+                                    Container(
+                                      padding: const EdgeInsets.all(2),
+                                      decoration: BoxDecoration(
+                                        shape: BoxShape.circle,
+                                        gradient: LinearGradient(
+                                          colors: [Colors.deepOrange, Colors.amber.shade700],
+                                        ),
+                                      ),
+                                      child: CircleAvatar(
+                                        radius: 16,
+                                        backgroundColor: Colors.white,
+                                        child: Text(moment.hobbyIcon, style: const TextStyle(fontSize: 14)),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 10),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            moment.userFullName.isNotEmpty ? moment.userFullName : moment.username,
+                                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                                          ),
+                                          Text(
+                                            '${moment.communityName} • ${moment.hobbyName}',
+                                            style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                      decoration: BoxDecoration(
+                                        color: Colors.deepOrange.shade50,
+                                        borderRadius: BorderRadius.circular(12),
+                                        border: Border.all(color: Colors.deepOrange.shade200),
+                                      ),
+                                      child: const Text(
+                                        '⚡ Şipşak',
+                                        style: TextStyle(color: Colors.deepOrange, fontSize: 11, fontWeight: FontWeight.bold),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              // Fotoğraf
+                              GestureDetector(
+                                onDoubleTap: () => _likeMoment(moment),
+                                onTap: () => _showStoryViewer(moment),
+                                child: AspectRatio(
+                                  aspectRatio: 1,
+                                  child: Image.network(
+                                    moment.imageUrl,
+                                    fit: BoxFit.cover,
+                                    errorBuilder: (_, __, ___) => Container(
+                                      color: Colors.grey.shade200,
+                                      child: const Center(child: Icon(Icons.broken_image, size: 40, color: Colors.grey)),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              // Etkileşim Butonları (Kalp, Yorum, Paylaş)
+                              Padding(
+                                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Row(
+                                      children: [
+                                        InkWell(
+                                          onTap: () => _likeMoment(moment),
+                                          borderRadius: BorderRadius.circular(20),
+                                          child: Padding(
+                                            padding: const EdgeInsets.all(4),
+                                            child: Row(
+                                              children: [
+                                                Icon(
+                                                  moment.likedByMe ? Icons.favorite : Icons.favorite_border,
+                                                  color: moment.likedByMe ? Colors.red : Colors.grey.shade800,
+                                                  size: 24,
+                                                ),
+                                                const SizedBox(width: 6),
+                                                Text(
+                                                  '${moment.likesCount}',
+                                                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                        ),
+                                        const SizedBox(width: 14),
+                                        Icon(Icons.chat_bubble_outline, size: 22, color: Colors.grey.shade800),
+                                        const SizedBox(width: 14),
+                                        Icon(Icons.send_outlined, size: 22, color: Colors.grey.shade800),
+                                        const Spacer(),
+                                        Icon(Icons.bookmark_border, size: 24, color: Colors.grey.shade800),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 8),
+                                    RichText(
+                                      text: TextSpan(
+                                        style: const TextStyle(fontSize: 13, color: Colors.black87),
+                                        children: [
+                                          TextSpan(
+                                            text: '${moment.userFullName.isNotEmpty ? moment.userFullName : moment.username} ',
+                                            style: const TextStyle(fontWeight: FontWeight.bold),
+                                          ),
+                                          TextSpan(text: moment.caption),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        )),
+                    const SizedBox(height: 16),
+                  ],
+
+                  // 4. Topluluk Paylaşımları
                   const Text(
-                    'Topluluk Paylaşımları 💬',
+                    'Topluluk Soru & Sohbetleri 💬',
                     style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                   ),
                   const SizedBox(height: 10),
@@ -789,6 +1212,8 @@ class _FeedTabState extends State<FeedTab> {
                 ],
               ),
             ),
+          ),
+        ),
     );
   }
 }
