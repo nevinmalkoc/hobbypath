@@ -182,6 +182,10 @@ class EventModel {
   final String hobbyIcon;
   final String organizerUsername;
   final String location;
+  final double? latitude;
+  final double? longitude;
+  final String? city;
+  final String? district;
   final String eventDate;
   final int capacity;
   final int currentParticipants;
@@ -198,6 +202,10 @@ class EventModel {
     required this.hobbyIcon,
     required this.organizerUsername,
     required this.location,
+    this.latitude,
+    this.longitude,
+    this.city,
+    this.district,
     required this.eventDate,
     required this.capacity,
     required this.currentParticipants,
@@ -216,6 +224,10 @@ class EventModel {
       hobbyIcon: json['hobbyIcon'] as String? ?? '📅',
       organizerUsername: json['organizerUsername'] as String? ?? '',
       location: json['location'] as String? ?? '',
+      latitude: (json['latitude'] as num?)?.toDouble(),
+      longitude: (json['longitude'] as num?)?.toDouble(),
+      city: json['city'] as String?,
+      district: json['district'] as String?,
       eventDate: json['eventDate'] as String? ?? '',
       capacity: json['capacity'] as int? ?? 0,
       currentParticipants: json['currentParticipants'] as int? ?? 0,

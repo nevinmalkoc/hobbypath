@@ -7,6 +7,7 @@ import 'community_detail_screen.dart';
 import 'daily_puzzle_screen.dart';
 import 'login_screen.dart';
 import 'starter_gear_screen.dart';
+import '../widgets/interactive_event_map.dart';
 
 class MainLayout extends StatefulWidget {
   const MainLayout({super.key});
@@ -756,6 +757,9 @@ class EventsTab extends StatefulWidget {
 class _EventsTabState extends State<EventsTab> {
   List<EventModel> _events = [];
   bool _isLoading = true;
+  bool _isMapView = false;
+  String _selectedDistrict = 'ALL';
+  EventModel? _selectedMapEvent;
 
   @override
   void initState() {
@@ -773,6 +777,9 @@ class _EventsTabState extends State<EventsTab> {
       setState(() {
         _events = list;
         _isLoading = false;
+        if (_selectedMapEvent == null && list.isNotEmpty) {
+          _selectedMapEvent = list.first;
+        }
       });
     } catch (e) {
       if (mounted) setState(() => _isLoading = false);
@@ -945,136 +952,382 @@ class _EventsTabState extends State<EventsTab> {
     );
   }
 
+  Widget _buildEventCard(EventModel event) {
+    final isRegistered = event.userStatus == 'REGISTERED';
+    final isWaitlist = event.userStatus == 'WAITLIST';
+    final isFull = event.currentParticipants >= event.capacity;
+
+    return Card(
+      margin: const EdgeInsets.only(bottom: 12),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Text(event.hobbyIcon, style: const TextStyle(fontSize: 28)),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        event.communityName,
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.grey.shade600,
+                        ),
+                      ),
+                      Text(
+                        event.title,
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 10),
+            Text(
+              event.description,
+              style: TextStyle(fontSize: 13, color: Colors.grey.shade700),
+            ),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                const Icon(Icons.location_on_outlined, size: 16, color: Colors.grey),
+                const SizedBox(width: 4),
+                Expanded(
+                  child: Text(
+                    event.location,
+                    style: const TextStyle(fontSize: 12, color: Colors.grey),
+                  ),
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: isFull ? Colors.red.shade50 : Colors.blue.shade50,
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: Text(
+                    isFull
+                        ? 'DOLU (${event.currentParticipants}/${event.capacity})'
+                        : 'Kontenjan: ${event.currentParticipants}/${event.capacity}',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                      color: isFull ? Colors.red.shade800 : Colors.blue.shade800,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            if (isRegistered || isWaitlist)
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.red.shade700,
+                ),
+                onPressed: () => _toggleJoin(event),
+                child: Text(
+                  isRegistered
+                      ? 'Katılıyorsun (İptal Et)'
+                      : 'Yedek Listedesin (İptal Et)',
+                ),
+              )
+            else if (isFull)
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.orange.shade800,
+                ),
+                onPressed: () => _toggleJoin(event),
+                child: const Text('Kontenjan Dolu · Yedek Listeye Katıl'),
+              )
+            else
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  ElevatedButton(
+                    onPressed: () => _toggleJoin(event),
+                    child: const Text('Hemen Katıl'),
+                  ),
+                  OutlinedButton.icon(
+                    onPressed: () => _startReservation(event),
+                    icon: const Icon(Icons.timer_outlined, size: 16),
+                    label: const Text('5 Dk Ayır (Kilit)'),
+                  ),
+                ],
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    final rawDistricts = _events
+        .map((e) => e.district)
+        .where((d) => d != null && d.isNotEmpty)
+        .toSet()
+        .cast<String>()
+        .toList();
+    final districts = ['ALL', ...rawDistricts];
+
+    final filteredEvents = _events.where((e) {
+      if (_selectedDistrict == 'ALL') return true;
+      return e.district == _selectedDistrict;
+    }).toList();
+
     return Scaffold(
-      appBar: AppBar(title: const Text('Buluşmalar & Etkinlikler')),
+      appBar: AppBar(
+        title: const Text('Buluşmalar & Etkinlikler'),
+        actions: [
+          IconButton(
+            tooltip: _isMapView ? 'Liste Görünümüne Geç' : 'Harita Görünümüne Geç',
+            onPressed: () {
+              setState(() {
+                _isMapView = !_isMapView;
+                if (_isMapView && _selectedMapEvent == null && filteredEvents.isNotEmpty) {
+                  _selectedMapEvent = filteredEvents.first;
+                }
+              });
+            },
+            icon: Icon(_isMapView ? Icons.view_list_outlined : Icons.map_outlined),
+          ),
+          const SizedBox(width: 8),
+        ],
+      ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
-          : RefreshIndicator(
-              onRefresh: _fetchEvents,
-              child: ListView.builder(
-                padding: const EdgeInsets.all(16),
-                itemCount: _events.length,
-                itemBuilder: (context, index) {
-                  final event = _events[index];
-                  final isRegistered = event.userStatus == 'REGISTERED';
-                  final isWaitlist = event.userStatus == 'WAITLIST';
-                  final isFull = event.currentParticipants >= event.capacity;
+          : Column(
+              children: [
+                // Dual View Toggle & District Filter
+                Container(
+                  color: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 8),
+                  child: Column(
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: SegmentedButton<bool>(
+                                segments: const [
+                                  ButtonSegment(
+                                    value: false,
+                                    icon: Icon(Icons.view_list_outlined, size: 18),
+                                    label: Text('Liste Görünümü'),
+                                  ),
+                                  ButtonSegment(
+                                    value: true,
+                                    icon: Icon(Icons.map_outlined, size: 18),
+                                    label: Text('Harita Görünümü 🗺️'),
+                                  ),
+                                ],
+                                selected: {_isMapView},
+                                onSelectionChanged: (val) {
+                                  setState(() {
+                                    _isMapView = val.first;
+                                    if (_isMapView && _selectedMapEvent == null && filteredEvents.isNotEmpty) {
+                                      _selectedMapEvent = filteredEvents.first;
+                                    }
+                                  });
+                                },
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      // District Filter Chips
+                      SizedBox(
+                        height: 38,
+                        child: ListView.builder(
+                          scrollDirection: Axis.horizontal,
+                          padding: const EdgeInsets.symmetric(horizontal: 16),
+                          itemCount: districts.length,
+                          itemBuilder: (context, index) {
+                            final d = districts[index];
+                            final isSelected = _selectedDistrict == d;
+                            return Padding(
+                              padding: const EdgeInsets.only(right: 8),
+                              child: FilterChip(
+                                label: Text(d == 'ALL' ? 'Tüm İlçeler 📍' : d),
+                                selected: isSelected,
+                                onSelected: (_) {
+                                  setState(() {
+                                    _selectedDistrict = d;
+                                    final curFiltered = _events.where((e) => d == 'ALL' || e.district == d).toList();
+                                    if (curFiltered.isNotEmpty && (_selectedMapEvent == null || !curFiltered.contains(_selectedMapEvent))) {
+                                      _selectedMapEvent = curFiltered.first;
+                                    }
+                                  });
+                                },
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const Divider(height: 1),
 
-                  return Card(
-                    margin: const EdgeInsets.only(bottom: 12),
-                    child: Padding(
-                      padding: const EdgeInsets.all(16),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              Text(event.hobbyIcon, style: const TextStyle(fontSize: 28)),
-                              const SizedBox(width: 10),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      event.communityName,
-                                      style: TextStyle(
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.w600,
-                                        color: Colors.grey.shade600,
-                                      ),
+                // View Content
+                Expanded(
+                  child: _isMapView
+                      ? Stack(
+                          children: [
+                            // Interactive Map Canvas
+                            InteractiveEventMap(
+                              events: filteredEvents,
+                              selectedEvent: _selectedMapEvent,
+                              onSelectEvent: (ev) => setState(() => _selectedMapEvent = ev),
+                            ),
+
+                            // Floating Selected Event Inspection Card
+                            if (_selectedMapEvent != null)
+                              Positioned(
+                                left: 16,
+                                right: 16,
+                                bottom: 16,
+                                child: Card(
+                                  elevation: 8,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(16),
+                                    side: BorderSide(color: Colors.blue.shade200, width: 1.5),
+                                  ),
+                                  child: Padding(
+                                    padding: const EdgeInsets.all(14),
+                                    child: Column(
+                                      mainAxisSize: MainAxisSize.min,
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Row(
+                                          children: [
+                                            Text(_selectedMapEvent!.hobbyIcon, style: const TextStyle(fontSize: 26)),
+                                            const SizedBox(width: 8),
+                                            Expanded(
+                                              child: Column(
+                                                crossAxisAlignment: CrossAxisAlignment.start,
+                                                children: [
+                                                  Text(
+                                                    _selectedMapEvent!.communityName,
+                                                    style: TextStyle(
+                                                      fontSize: 11,
+                                                      fontWeight: FontWeight.w600,
+                                                      color: Colors.blue.shade800,
+                                                    ),
+                                                  ),
+                                                  Text(
+                                                    _selectedMapEvent!.title,
+                                                    maxLines: 1,
+                                                    overflow: TextOverflow.ellipsis,
+                                                    style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
+                                            IconButton(
+                                              icon: const Icon(Icons.close, size: 18),
+                                              padding: EdgeInsets.zero,
+                                              constraints: const BoxConstraints(),
+                                              onPressed: () => setState(() => _selectedMapEvent = null),
+                                            ),
+                                          ],
+                                        ),
+                                        const SizedBox(height: 8),
+                                        Row(
+                                          children: [
+                                            Container(
+                                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                              decoration: BoxDecoration(
+                                                color: Colors.grey.shade100,
+                                                borderRadius: BorderRadius.circular(4),
+                                              ),
+                                              child: Text(
+                                                '📍 ${_selectedMapEvent!.district ?? "İstanbul"}',
+                                                style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold),
+                                              ),
+                                            ),
+                                            const SizedBox(width: 6),
+                                            Expanded(
+                                              child: Text(
+                                                _selectedMapEvent!.location,
+                                                maxLines: 1,
+                                                overflow: TextOverflow.ellipsis,
+                                                style: const TextStyle(fontSize: 11, color: Colors.grey),
+                                              ),
+                                            ),
+                                            Text(
+                                              '${_selectedMapEvent!.currentParticipants}/${_selectedMapEvent!.capacity}',
+                                              style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.blue.shade700),
+                                            ),
+                                          ],
+                                        ),
+                                        const SizedBox(height: 10),
+                                        Row(
+                                          children: [
+                                            Expanded(
+                                              child: ElevatedButton(
+                                                onPressed: () => _toggleJoin(_selectedMapEvent!),
+                                                style: ElevatedButton.styleFrom(
+                                                  padding: const EdgeInsets.symmetric(vertical: 10),
+                                                  backgroundColor: _selectedMapEvent!.userStatus == 'REGISTERED'
+                                                      ? Colors.red.shade700
+                                                      : Colors.blue.shade700,
+                                                  foregroundColor: Colors.white,
+                                                ),
+                                                child: Text(
+                                                  _selectedMapEvent!.userStatus == 'REGISTERED'
+                                                      ? 'Katılıyorsun (İptal)'
+                                                      : 'Hemen Katıl',
+                                                  style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+                                                ),
+                                              ),
+                                            ),
+                                            const SizedBox(width: 8),
+                                            OutlinedButton(
+                                              onPressed: () => _startReservation(_selectedMapEvent!),
+                                              style: OutlinedButton.styleFrom(
+                                                padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
+                                              ),
+                                              child: const Text('5 Dk Ayır', style: TextStyle(fontSize: 12)),
+                                            ),
+                                          ],
+                                        ),
+                                      ],
                                     ),
-                                    Text(
-                                      event.title,
-                                      style: const TextStyle(
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 10),
-                          Text(
-                            event.description,
-                            style: TextStyle(fontSize: 13, color: Colors.grey.shade700),
-                          ),
-                          const SizedBox(height: 12),
-                          Row(
-                            children: [
-                              const Icon(Icons.location_on_outlined, size: 16, color: Colors.grey),
-                              const SizedBox(width: 4),
-                              Expanded(
-                                child: Text(
-                                  event.location,
-                                  style: const TextStyle(fontSize: 12, color: Colors.grey),
-                                ),
-                              ),
-                              Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                decoration: BoxDecoration(
-                                  color: isFull ? Colors.red.shade50 : Colors.blue.shade50,
-                                  borderRadius: BorderRadius.circular(6),
-                                ),
-                                child: Text(
-                                  isFull
-                                      ? 'DOLU (${event.currentParticipants}/${event.capacity})'
-                                      : 'Kontenjan: ${event.currentParticipants}/${event.capacity}',
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.bold,
-                                    color: isFull ? Colors.red.shade800 : Colors.blue.shade800,
                                   ),
                                 ),
                               ),
-                            ],
-                          ),
-                          const SizedBox(height: 12),
-                          if (isRegistered || isWaitlist)
-                            ElevatedButton(
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.red.shade700,
-                              ),
-                              onPressed: () => _toggleJoin(event),
-                              child: Text(
-                                isRegistered
-                                    ? 'Katılıyorsun (İptal Et)'
-                                    : 'Yedek Listedesin (İptal Et)',
-                              ),
-                            )
-                          else if (isFull)
-                            ElevatedButton(
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.orange.shade800,
-                              ),
-                              onPressed: () => _toggleJoin(event),
-                              child: const Text('Kontenjan Dolu · Yedek Listeye Katıl'),
-                            )
-                          else
-                            Wrap(
-                              spacing: 8,
-                              runSpacing: 8,
-                              children: [
-                                ElevatedButton(
-                                  onPressed: () => _toggleJoin(event),
-                                  child: const Text('Hemen Katıl'),
+                          ],
+                        )
+                      : RefreshIndicator(
+                          onRefresh: _fetchEvents,
+                          child: filteredEvents.isEmpty
+                              ? Center(
+                                  child: Text(
+                                    'Bu ilçede henüz planlanmış etkinlik yok.',
+                                    style: TextStyle(color: Colors.grey.shade600),
+                                  ),
+                                )
+                              : ListView.builder(
+                                  padding: const EdgeInsets.all(16),
+                                  itemCount: filteredEvents.length,
+                                  itemBuilder: (context, index) => _buildEventCard(filteredEvents[index]),
                                 ),
-                                OutlinedButton.icon(
-                                  onPressed: () => _startReservation(event),
-                                  icon: const Icon(Icons.timer_outlined, size: 16),
-                                  label: const Text('5 Dk Ayır (Kilit)'),
-                                ),
-                              ],
-                            ),
-                        ],
-                      ),
-                    ),
-                  );
-                },
-              ),
+                        ),
+                ),
+              ],
             ),
     );
   }

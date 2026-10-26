@@ -24,6 +24,7 @@ public class DataInitializer implements CommandLineRunner {
     public void run(String... args) {
         seedHobbies();
         seedCommunitiesAndEvents();
+        updateEventCoordinates();
     }
 
     private void seedHobbies() {
@@ -227,6 +228,67 @@ public class DataInitializer implements CommandLineRunner {
                                 .build()
                 );
             }
+        }
+    }
+
+    private void updateEventCoordinates() {
+        var events = eventRepository.findAll();
+        for (var event : events) {
+            if (event.getLatitude() != null && event.getLongitude() != null) continue;
+
+            String title = event.getTitle().toLowerCase();
+            String location = event.getLocation().toLowerCase();
+
+            if (title.contains("torna") || location.contains("moda") || location.contains("kadıköy")) {
+                if (title.contains("koşu") || location.contains("caddebostan")) {
+                    event.setLatitude(40.9634);
+                    event.setLongitude(29.0601);
+                    event.setCity("İstanbul");
+                    event.setDistrict("Kadıköy");
+                } else {
+                    event.setLatitude(40.9833);
+                    event.setLongitude(29.0270);
+                    event.setCity("İstanbul");
+                    event.setDistrict("Kadıköy");
+                }
+            } else if (title.contains("fotoğraf") || location.contains("karaköy") || location.contains("balat")) {
+                event.setLatitude(41.0225);
+                event.setLongitude(28.9774);
+                event.setCity("İstanbul");
+                event.setDistrict("Beyoğlu");
+            } else if (title.contains("makarna") || location.contains("akaretler") || location.contains("beşiktaş")) {
+                event.setLatitude(41.0422);
+                event.setLongitude(29.0016);
+                event.setCity("İstanbul");
+                event.setDistrict("Beşiktaş");
+            } else if (title.contains("ballıkayalar") || location.contains("gebze")) {
+                event.setLatitude(40.8038);
+                event.setLongitude(29.4756);
+                event.setCity("Kocaeli");
+                event.setDistrict("Gebze");
+            } else if (title.contains("binicilik") || location.contains("polonezköy")) {
+                event.setLatitude(41.1128);
+                event.setLongitude(29.2132);
+                event.setCity("İstanbul");
+                event.setDistrict("Beykoz");
+            } else if (title.contains("belgrad") || location.contains("sarıyer")) {
+                event.setLatitude(41.1852);
+                event.setLongitude(28.9867);
+                event.setCity("İstanbul");
+                event.setDistrict("Sarıyer");
+            } else if (title.contains("aydos") || location.contains("kartal")) {
+                event.setLatitude(40.9419);
+                event.setLongitude(29.2597);
+                event.setCity("İstanbul");
+                event.setDistrict("Kartal");
+            } else {
+                // Default central Istanbul point
+                event.setLatitude(41.0082);
+                event.setLongitude(28.9784);
+                event.setCity("İstanbul");
+                event.setDistrict("Merkez");
+            }
+            eventRepository.save(event);
         }
     }
 }

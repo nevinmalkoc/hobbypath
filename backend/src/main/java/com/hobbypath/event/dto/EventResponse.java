@@ -24,6 +24,10 @@ public class EventResponse {
     private String hobbyIcon;
     private String organizerUsername;
     private String location;
+    private Double latitude;
+    private Double longitude;
+    private String city;
+    private String district;
     private Instant eventDate;
     private int capacity;
     private int currentParticipants;

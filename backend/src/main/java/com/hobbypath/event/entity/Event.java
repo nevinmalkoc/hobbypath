@@ -38,6 +38,18 @@ public class Event {
     @Column(nullable = false, length = 255)
     private String location;
 
+    @Column
+    private Double latitude;
+
+    @Column
+    private Double longitude;
+
+    @Column(length = 60)
+    private String city;
+
+    @Column(length = 60)
+    private String district;
+
     @Column(nullable = false)
     private Instant eventDate;
 
