@@ -20,4 +20,7 @@ public class UpdateProfileRequest {
 
     @Size(max = 100, message = "Location cannot exceed 100 characters")
     private String location;
+
+    @Size(max = 255, message = "Avatar cannot exceed 255 characters")
+    private String avatar;
 }

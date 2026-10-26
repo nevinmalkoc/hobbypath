@@ -1033,6 +1033,187 @@ class _ProfileTabState extends State<ProfileTab> {
     }
   }
 
+  Future<void> _updateAvatar(String newAvatar) async {
+    try {
+      final response = await ApiClient().dio.patch(
+        '/users/profile',
+        data: {'avatar': newAvatar},
+      );
+      setState(() {
+        _user = UserModel.fromJson(response.data as Map<String, dynamic>);
+      });
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Profil avatarın başarıyla güncellendi! 🎉'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Avatar güncellenirken hata oluştu: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  void _showAvatarPicker() {
+    final urlController = TextEditingController();
+    final avatarPresets = [
+      {'icon': '🏇', 'name': 'Binici'},
+      {'icon': '🏺', 'name': 'Seramikçi'},
+      {'icon': '📸', 'name': 'Fotoğrafçı'},
+      {'icon': '🏃', 'name': 'Koşucu'},
+      {'icon': '🌲', 'name': 'Gezgin'},
+      {'icon': '🍳', 'name': 'Gurme'},
+      {'icon': '💻', 'name': 'Geliştirici'},
+      {'icon': '🎨', 'name': 'Sanatçı'},
+      {'icon': '🧗', 'name': 'Tırmanışçı'},
+      {'icon': '🦊', 'name': 'Kurnaz Tilki'},
+      {'icon': '🦉', 'name': 'Bilge Baykuş'},
+      {'icon': '🦄', 'name': 'Unicorn'},
+      {'icon': '🚀', 'name': 'Astronot'},
+      {'icon': '🧑‍💻', 'name': 'Hacker'},
+      {'icon': '🎧', 'name': 'Müzisyen'},
+      {'icon': '☕', 'name': 'Barista'},
+    ];
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) => Padding(
+        padding: EdgeInsets.only(
+          left: 20,
+          right: 20,
+          top: 20,
+          bottom: MediaQuery.of(ctx).viewInsets.bottom + 20,
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Center(
+              child: Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade300,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+            const Text(
+              'Profil Görselini veya Avatarını Seç 🎨',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              'İster hobi karakterlerinden birini seç, ister kendi fotoğraf bağlantını ekle!',
+              style: TextStyle(fontSize: 13, color: Colors.grey.shade600),
+            ),
+            const SizedBox(height: 16),
+            SizedBox(
+              height: 180,
+              child: GridView.builder(
+                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 4,
+                  childAspectRatio: 1.1,
+                  crossAxisSpacing: 10,
+                  mainAxisSpacing: 10,
+                ),
+                itemCount: avatarPresets.length,
+                itemBuilder: (context, index) {
+                  final preset = avatarPresets[index];
+                  final isSelected = _user?.avatar == preset['icon'];
+                  return InkWell(
+                    borderRadius: BorderRadius.circular(12),
+                    onTap: () {
+                      Navigator.pop(ctx);
+                      _updateAvatar(preset['icon']!);
+                    },
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: isSelected ? Colors.blue.shade100 : Colors.grey.shade100,
+                        border: Border.all(
+                          color: isSelected ? Colors.blue.shade700 : Colors.grey.shade300,
+                          width: isSelected ? 2 : 1,
+                        ),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(preset['icon']!, style: const TextStyle(fontSize: 26)),
+                          const SizedBox(height: 4),
+                          Text(
+                            preset['name']!,
+                            style: TextStyle(
+                              fontSize: 10,
+                              fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                              color: isSelected ? Colors.blue.shade900 : Colors.grey.shade700,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+            const SizedBox(height: 12),
+            const Divider(),
+            const SizedBox(height: 8),
+            const Text(
+              'Veya Kendi Fotoğraf Bağlantın (URL) 🔗',
+              style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    controller: urlController,
+                    decoration: InputDecoration(
+                      hintText: 'https://images.unsplash.com/...',
+                      hintStyle: TextStyle(fontSize: 12, color: Colors.grey.shade400),
+                      isDense: true,
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                ElevatedButton(
+                  onPressed: () {
+                    final url = urlController.text.trim();
+                    if (url.isNotEmpty && (url.startsWith('http://') || url.startsWith('https://'))) {
+                      Navigator.pop(ctx);
+                      _updateAvatar(url);
+                    } else {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Lütfen geçerli bir https:// fotoğraf adresi girin')),
+                      );
+                    }
+                  },
+                  child: const Text('Kaydet'),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Future<void> _logout() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.clear();
@@ -1041,6 +1222,24 @@ class _ProfileTabState extends State<ProfileTab> {
       context,
       MaterialPageRoute(builder: (_) => const LoginScreen()),
       (route) => false,
+    );
+  }
+
+  Widget _buildAvatarWidget(String avatar, double radius) {
+    if (avatar.startsWith('http://') || avatar.startsWith('https://')) {
+      return CircleAvatar(
+        radius: radius,
+        backgroundColor: Colors.blue.shade100,
+        backgroundImage: NetworkImage(avatar),
+      );
+    }
+    return CircleAvatar(
+      radius: radius,
+      backgroundColor: Colors.blue.shade100,
+      child: Text(
+        avatar.isNotEmpty ? avatar : '🏇',
+        style: TextStyle(fontSize: radius * 0.95),
+      ),
     );
   }
 
@@ -1065,22 +1264,33 @@ class _ProfileTabState extends State<ProfileTab> {
                   padding: const EdgeInsets.all(20),
                   children: [
                     Center(
-                      child: CircleAvatar(
-                        radius: 40,
-                        backgroundColor: Colors.blue.shade100,
-                        child: Text(
-                          _user!.fullName.isNotEmpty
-                              ? _user!.fullName[0].toUpperCase()
-                              : 'U',
-                          style: TextStyle(
-                            fontSize: 32,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.blue.shade800,
+                      child: Stack(
+                        children: [
+                          _buildAvatarWidget(_user!.avatar, 44),
+                          Positioned(
+                            bottom: 0,
+                            right: 0,
+                            child: InkWell(
+                              onTap: _showAvatarPicker,
+                              child: CircleAvatar(
+                                radius: 15,
+                                backgroundColor: Colors.blue.shade700,
+                                child: const Icon(Icons.camera_alt, size: 15, color: Colors.white),
+                              ),
+                            ),
                           ),
-                        ),
+                        ],
                       ),
                     ),
-                    const SizedBox(height: 12),
+                    const SizedBox(height: 6),
+                    Center(
+                      child: TextButton.icon(
+                        onPressed: _showAvatarPicker,
+                        icon: const Icon(Icons.photo_library_outlined, size: 15),
+                        label: const Text('Avatarı Değiştir', style: TextStyle(fontSize: 12)),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
                     Center(
                       child: Text(
                         _user!.fullName,

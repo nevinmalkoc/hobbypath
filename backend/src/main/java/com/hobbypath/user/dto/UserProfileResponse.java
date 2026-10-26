@@ -21,6 +21,7 @@ public class UserProfileResponse {
     private String fullName;
     private String bio;
     private String location;
+    private String avatar;
     private String role;
     private Instant createdAt;
     private List<UserHobbyResponse> hobbies;

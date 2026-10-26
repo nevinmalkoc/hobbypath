@@ -51,6 +51,9 @@ public class UserService {
         if (request.getLocation() != null) {
             user.setLocation(request.getLocation().trim());
         }
+        if (request.getAvatar() != null && !request.getAvatar().isBlank()) {
+            user.setAvatar(request.getAvatar().trim());
+        }
 
         User updatedUser = userRepository.save(user);
 
@@ -109,6 +112,7 @@ public class UserService {
                 .fullName(user.getFullName())
                 .bio(user.getBio())
                 .location(user.getLocation())
+                .avatar(user.getAvatar())
                 .role(user.getRole().name())
                 .createdAt(user.getCreatedAt())
                 .hobbies(hobbies)

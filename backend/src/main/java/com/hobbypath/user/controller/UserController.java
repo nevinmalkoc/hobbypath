@@ -25,7 +25,7 @@ public class UserController {
         return ResponseEntity.ok(userService.getUserProfile(user));
     }
 
-    @PutMapping("/profile")
+    @RequestMapping(value = "/profile", method = {RequestMethod.PUT, RequestMethod.PATCH})
     public ResponseEntity<UserProfileResponse> updateProfile(
             @AuthenticationPrincipal User user,
             @Valid @RequestBody UpdateProfileRequest request

@@ -124,13 +124,17 @@ public class DailyPuzzleService {
     private DailyPuzzle seedTodayPuzzle(LocalDate date) {
         Hobby horseRiding = hobbyRepository.findByNameIgnoreCase("Horse Riding").orElse(null);
 
+        java.util.List<String> letters = new java.util.ArrayList<>(java.util.List.of("P", "T", "C", "R", "A", "O", "S", "H", "K", "L"));
+        java.util.Collections.shuffle(letters);
+        String scrambled = String.join(",", letters);
+
         DailyPuzzle puzzle = DailyPuzzle.builder()
                 .puzzleDate(date)
                 .hobby(horseRiding)
                 .title("Günün Binicilik Terimi 🐎")
                 .clue("Binicilikte bacağın alt kısmını ve pantolonu sürtünmeden koruyan deri veya süet koruyucu?")
                 .answer("CHAPS")
-                .scrambledLetters("C,H,A,P,S,T,O,R")
+                .scrambledLetters(scrambled)
                 .pointsReward(100)
                 .build();
 

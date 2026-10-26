@@ -60,6 +60,7 @@ class UserModel {
   final String fullName;
   final String bio;
   final String location;
+  final String avatar;
   final String role;
   final List<UserHobbyModel> hobbies;
 
@@ -70,6 +71,7 @@ class UserModel {
     required this.fullName,
     required this.bio,
     required this.location,
+    required this.avatar,
     required this.role,
     required this.hobbies,
   });
@@ -87,6 +89,7 @@ class UserModel {
       fullName: json['fullName'] as String? ?? '',
       bio: json['bio'] as String? ?? '',
       location: json['location'] as String? ?? '',
+      avatar: json['avatar'] as String? ?? '🏇',
       role: json['role'] as String? ?? 'ROLE_USER',
       hobbies: hobbyList,
     );

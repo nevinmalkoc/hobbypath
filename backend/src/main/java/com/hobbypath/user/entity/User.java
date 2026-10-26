@@ -42,6 +42,10 @@ public class User implements UserDetails {
     @Column(length = 100)
     private String location;
 
+    @Column(length = 255)
+    @Builder.Default
+    private String avatar = "🏇";
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
     private Role role;
